@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Smart Farm</title>
+
+  <!-- Leaflet (แผนที่) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root{
+      --bg:#e8f5e9; --layer:#c8e6c9; --ink:#1b5e20; --ink-2:#33691e; --accent:#81c784;
+      --card:#cfe9cf; --shadow:0 4px 10px rgba(0,0,0,.12);
+    }
+    [data-theme="dark"]{
+      --bg:#0f1a12; --layer:#17341f; --ink:#d7f5dc; --ink-2:#b7e4bf; --accent:#2e7d32;
+      --card:#204a2b; --shadow:0 6px 18px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: "Segoe UI", system-ui, sans-serif;
+      background:var(--bg); color:var(--ink);
+      display:flex; flex-direction:column; min-height:100vh;
+    }
+
+    .page{flex:1; display:none; padding:18px; animation:fade .35s ease forwards; overflow:auto}
+    .page.active{display:block}
+    @keyframes fade{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:translateY(0)}}
+
+    .header{ text-align:center; margin:6px 0 14px }
+    .title{ font-size:22px; margin:0 0 6px; color:var(--ink) }
+    .sub{ color:var(--ink-2); margin:0; font-size:14px }
+
+    .menu-grid{ display:grid; gap:14px; grid-template-columns:repeat(3,1fr); }
+    .menu-item{
+      background:var(--layer); border-radius:16px; padding:18px 10px; text-align:center;
+      cursor:pointer; box-shadow:var(--shadow); transition:.25s transform,.25s filter; user-select:none;
+    }
+    .menu-item:hover{ transform:translateY(-3px); filter:brightness(1.03) }
+    .menu-item .emj{font-size:20px}
+    .menu-item .lbl{ display:block; margin-top:8px; font-weight:700; color:var(--ink) }
+
+    .card{ background:var(--card); border-radius:16px; box-shadow:var(--shadow); padding:16px; margin:10px 0; }
+    .card h2{margin:0 0 10px; font-size:18px}
+    .row{ display:grid; grid-template-columns:1fr 1fr; gap:10px }
+    .row-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px }
+    label{font-size:13px; color:var(--ink-2)}
+    input,select,button,textarea{
+      width:100%; padding:10px 12px; border-radius:12px; border:1px solid transparent;
+      background:#fff; color:#0f0f0f; outline:none;
+    }
+    [data-theme="dark"] input,[data-theme="dark"] select,[data-theme="dark"] textarea{
+      background:#122118; color:#e8ffe9; border-color:#203a26;
+    }
+    button{ background:var(--accent); color:#06350d; font-weight:700; cursor:pointer; box-shadow:var(--shadow); }
+    .help{font-size:12px; color:var(--ink-2)}
+
+    table{ width:100%; border-collapse:collapse; overflow:hidden; border-radius:12px }
+    th,td{ padding:10px; text-align:left; }
+    thead tr{ background:var(--layer) }
+    tbody tr{ background:#fff }
+    [data-theme="dark"] tbody tr{ background:#0f1a12 }
+    tbody tr+tr td{ border-top:1px solid rgba(0,0,0,.06) }
+    [data-theme="dark"] tbody tr+tr td{ border-top:1px solid #203a26 }
+
+    .flex{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+    .right{ margin-left:auto }
+
+    .bottom-nav{
+      position:sticky; bottom:0; left:0; right:0;
+      display:grid; grid-template-columns:repeat(4,1fr);
+      background:var(--layer); padding:8px 0;
+      border-top-left-radius:14px; border-top-right-radius:14px; box-shadow:0 -4px 10px rgba(0,0,0,.1);
+    }
+    .tab{
+      background:none;border:none;color:var(--ink); font-size:13px; display:flex;
+      flex-direction:column; align-items:center; gap:4px; padding:6px 0; cursor:pointer; opacity:.9
+    }
+    .tab.active{ opacity:1; font-weight:700; text-decoration:underline }
+    .tab .emj{font-size:18px}
+
+    #farmMap{ height:65vh; border-radius:14px; box-shadow:var(--shadow); }
+    .legend{ background:rgba(255,255,255,.92); padding:8px 10px; border-radius:10px; font-size:12px }
+    .legend .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+
+    @media (max-width:900px){ .menu-grid{ grid-template-columns:repeat(2,1fr) } }
+    @media (max-width:560px){ .menu-grid{ grid-template-columns:1fr } .row,.row-3{ grid-template-columns:1fr } }
+  </style>
+</head>
+<body>
+
+  <!-- HOME -->
+  <section id="home" class="page active">
+    <div class="header">
+      <h1 class="title">สวัสดี 👋</h1>
+      <p class="sub">สภาพอากาศ & ราคาผลไม้วันนี้ · เลือกฟีเจอร์ที่ต้องการ</p>
+    </div>
+
+    <div class="card">
+      <h2>สภาพอากาศ & ราคาผลไม้</h2>
+      <div class="row">
+        <div>
+          <label>จังหวัด/อำเภอ</label>
+          <input id="locInput" placeholder="เช่น เชียงใหม่ · เมือง" />
+          <div class="help">จะถูกบันทึกไว้ใช้ครั้งถัดไป</div>
+        </div>
+        <div class="flex" style="align-items:end">
+          <button id="btnFetch" style="min-width:160px">อัปเดตข้อมูล</button>
+          <button id="btnTheme" class="right" title="สลับธีม">สลับโหมดสว่าง/มืด</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="card">
+          <h3 style="margin:0 0 6px">🌤️ อากาศ</h3>
+          <div id="weatherBox" class="help">กด “อัปเดตข้อมูล” เพื่อดึง (เดโม่)</div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 6px">🍌 ราคาผลไม้</h3>
+          <div id="priceBox" class="help">กล้วย/มะม่วง/ทุเรียน (เดโม่)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-grid" style="margin-top:14px">
+      <div class="menu-item" onclick="showPage('disease')"><span class="emj">🔍</span><span class="lbl">ตรวจโรค</span></div>
+      <div class="menu-item" onclick="showPage('care')"><span class="emj">🌱</span><span class="lbl">ดูแล</span></div>
+      <div class="menu-item" onclick="showPage('work')"><span class="emj">⚙️</span><span class="lbl">การทำงาน</span></div>
+      <div class="menu-item" onclick="showPage('water')"><span class="emj">💧</span><span class="lbl">ปริมาณน้ำปุ๋ย</span></div>
+      <div class="menu-item" onclick="showPage('fertilizer')"><span class="emj">🌿</span><span class="lbl">แนะนำปุ๋ย</span></div>
+      <div class="menu-item" onclick="showPage('report')"><span class="emj">📊</span><span class="lbl">รายงาน</span></div>
+    </div>
+  </section>
+
+  <!-- DISEASE -->
+  <section id="disease" class="page">
+    <div class="header"><h1 class="title">🔍 ตรวจโรคพืช</h1><p class="sub">อัปโหลดรูปใบหรือผลผลิต (เดโม่ออฟไลน์)</p></div>
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>เลือกรูป</label>
+          <input type="file" id="diseaseFile" accept="image/*" />
+          <div id="diseasePreview" style="margin-top:12px"></div>
+        </div>
+        <div>
+          <label>ผลวิเคราะห์</label>
+          <textarea id="diseaseResult" rows="8" placeholder="ยังไม่ได้ตรวจ..."></textarea>
+        </div>
+      </div>
+      <div class="flex" style="margin-top:10px">
+        <button id="btnDiseaseDemo">วิเคราะห์ (เดโม่)</button>
+        <button id="btnMarkDisease" title="ทดสอบการปักหมุดโรค">ปักหมุดโรค (เดโม่)</button>
+        <span class="help">TODO: เปลี่ยนเป็นโมเดล Teachable Machine ทีหลัง</span>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <h3 style="margin:0 0 8px">Top-3 (เดโม่)</h3>
+        <div id="top3Box" class="help">—</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CARE -->
+  <section id="care" class="page">
+    <div class="header"><h1 class="title">🌱 การดูแลพืช</h1></div>
+    <div class="card">
+      <h2>ทิปส์ช่วงฝน</h2>
+      <ul>
+        <li>คลุมดินลดการกระเด็นของเชื้อรา</li>
+        <li>ตรวจน้ำขังรอบโคนต้น</li>
+        <li>พ่นชีวภัณฑ์สลับสูตรทุก 7–10 วัน</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- WORK -->
+  <section id="work" class="page">
+    <div class="header"><h1 class="title">⚙️ การทำงาน</h1><p class="sub">โน้ตขั้นตอนงานในฟาร์ม</p></div>
+    <div class="card">
+      <div class="row">
+        <div><label>งาน</label><input id="taskName" placeholder="เช่น พ่นเชื้อรา"></div>
+        <div><label>วันที่</label><input id="taskDate" type="date"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label>พื้นที่</label><input id="taskArea" placeholder="ไร่/แปลงที่..."></div>
+        <div><label>หมายเหตุ</label><input id="taskNote" placeholder="เช่น ใช้บีที 50 กรัม"></div>
+      </div>
+      <div class="flex" style="margin-top:10px">
+        <button onclick="addTask()">บันทึกงาน</button>
+        <button class="right" onclick="exportCSV()">Export CSV</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>รายการงาน</h2>
+      <div class="help">เก็บในเบราว์เซอร์เครื่องนี้</div>
+      <table id="taskTable">
+        <thead><tr><th>วันที่</th><th>งาน</th><th>พื้นที่</th><th>หมายเหตุ</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- WATER -->
+  <section id="water" class="page">
+    <div class="header"><h1 class="title">💧 คำนวณปริมาณน้ำปุ๋ย</h1></div>
+    <div class="card">
+      <div class="row-3">
+        <div><label>พื้นที่ (ไร่)</label><input id="wArea" type="number" step="0.01" placeholder="เช่น 1.5"></div>
+        <div><label>อัตราน้ำ (ลิตร/ไร่)</label><input id="wRate" type="number" step="1" placeholder="เช่น 800"></div>
+        <div><label>% เข้มข้นปุ๋ย (w/v)</label><input id="wPct" type="number" step="0.1" placeholder="เช่น 0.5"></div>
+      </div>
+      <div class="flex" style="margin-top:10px">
+        <button onclick="calcWater()">คำนวณ</button>
+        <span id="wOut" class="help"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FERTILIZER -->
+  <section id="fertilizer" class="page">
+    <div class="header"><h1 class="title">🌿 แนะนำปุ๋ย</h1><p class="sub">เลือกพืชเพื่อดูสูตรแนะนำ</p></div>
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>พืช</label>
+          <select id="fzPlant">
+            <option value="banana">กล้วย</option>
+            <option value="mango">มะม่วง</option>
+            <option value="durian">ทุเรียน</option>
+            <option value="rice">ข้าว</option>
+            <option value="vegetable">ผักใบ</option>
+          </select>
+        </div>
+        <div style="align-self:end"><button onclick="showFormula()">ดูสูตร</button></div>
+      </div>
+      <div id="fzBox" class="card" style="margin-top:10px">
+        <div class="help">จะมีสูตรแบ่งช่วงอายุพืช/ระยะผลผลิต</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REPORT -->
+  <section id="report" class="page">
+    <div class="header"><h1 class="title">📊 รายงาน</h1><p class="sub">สรุปงาน + กราฟ (เตรียมช่องไว้)</p></div>
+    <div class="card">
+      <h2>สรุปจำนวนงานต่อเดือน (เดโม่)</h2>
+      <div id="reportBox" class="help">TODO: วาดกราฟด้วย canvas/Chart.js ภายหลัง</div>
+    </div>
+  </section>
+
+  <!-- CHAT -->
+  <section id="chat" class="page">
+    <div class="header"><h1 class="title">🤖 แชท AI</h1><p class="sub">ที่นี่วาง UI แชทได้</p></div>
+    <div class="card">
+      <div class="row">
+        <input id="chatInput" placeholder="พิมพ์ถามเรื่องฟาร์ม..." />
+        <button onclick="demoChat()">ส่ง</button>
+      </div>
+      <div id="chatBox" class="card" style="margin-top:10px; min-height:80px"></div>
+    </div>
+  </section>
+
+  <!-- LOCATION (แผนที่) -->
+  <section id="location" class="page">
+    <div class="header">
+      <h1 class="title">📍 ตำแหน่งฟาร์ม</h1>
+      <p class="sub">แผนที่ภาพถ่ายดาวเทียม + หมุดสถานะงานรดน้ำ และหมุดโรค</p>
+    </div>
+
+    <div class="card">
+      <div class="flex">
+        <button onclick="loc_readGPS()">อ่านพิกัด</button>
+        <button onclick="loc_setClickColor('green')">หมุดเขียว: รดน้ำเสร็จแล้ว</button>
+        <button onclick="loc_setClickColor('yellow')">หมุดเหลือง: กำลังรด</button>
+        <button onclick="loc_setClickColor('red')">หมุดแดง: ยังไม่รด</button>
+        <button class="right" onclick="loc_clear()">ล้างหมุดงานทั้งหมด</button>
+      </div>
+
+      <div class="flex" style="margin-top:8px">
+        <button onclick="loc_calibrate()">ปรับเทียบพิกัด</button>
+        <button onclick="loc_clearCal()">ล้างออฟเซ็ต</button>
+      </div>
+
+      <div id="farmMap" style="margin-top:10px"></div>
+      <div class="help" style="margin-top:8px">
+        คลิกบนแผนที่เพื่อวางหมุดตามโหมดสีที่เลือก · “หมุดโรค (ม่วง)” จะถูกปักอัตโนมัติหลังวิเคราะห์ (หรือให้คลิกหาก GPS ไม่พร้อม)
+      </div>
+    </div>
+  </section>
+
+  <!-- ACCOUNT -->
+  <section id="account" class="page">
+    <div class="header"><h1 class="title">👤 บัญชีผู้ใช้</h1></div>
+    <div class="card">
+      <div class="row">
+        <div><label>ชื่อฟาร์ม</label><input id="accFarm" placeholder="เช่น สวนซัน"></div>
+        <div><label>ผู้ดูแล</label><input id="accOwner" placeholder="เช่น ซัน"></div>
+      </div>
+      <div class="flex" style="margin-top:10px">
+        <button onclick="saveAccount()">บันทึก</button>
+        <span id="accMsg" class="help"></span>
+      </div>
+    </div>
+  </section>
+
+  <nav class="bottom-nav">
+    <button class="tab active" data-tab="home" onclick="showPage('home')"><span class="emj">🏠</span>หน้าหลัก</button>
+    <button class="tab" data-tab="chat" onclick="showPage('chat')"><span class="emj">🤖</span>แชท AI</button>
+    <button class="tab" data-tab="location" onclick="showPage('location')"><span class="emj">📍</span>ตำแหน่งฟาร์ม</button>
+    <button class="tab" data-tab="account" onclick="showPage('account')"><span class="emj">👤</span>บัญชีผู้ใช้</button>
+  </nav>
+
+  <script>
+/* ===================== MAP + GPS (อยู่บนสุดเพื่อกัน TDZ) ===================== */
+let map, baseLayer, clickColor='green';
+const layerWork = L.layerGroup();
+const layerDisease = L.layerGroup();
+const LS_WORK = 'sf_map_work_v1';
+const LS_DISEASE = 'sf_map_disease_v1';
+let pendingDisease = null;
+let accCircle = null;   // วงความแม่นยำ
+let lastRawPos = null;  // พิกัดดิบก่อนออฟเซ็ต
+
+function colorIcon(color){
+  const html = `<div style="position:relative;width:20px;height:20px;background:${color};border-radius:50%;
+    border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.4);"></div>`;
+  return L.divIcon({className:'', html, iconSize:[20,20], iconAnchor:[10,10]});
+}
+function diseaseIcon(){
+  const html = `<div style="position:relative;width:22px;height:22px;background:#a97cff;border-radius:50%;
+    border:2px solid #fff;box-shadow:0 0 8px rgba(0,0,0,.5);"></div>`;
+  return L.divIcon({className:'', html, iconSize:[22,22], iconAnchor:[11,11]});
+}
+const ICONS = {
+  green:  colorIcon('#39d353'),
+  yellow: colorIcon('#ffd33d'),
+  red:    colorIcon('#ff4d4f'),
+  disease: diseaseIcon(),
+  user: L.icon({
+    iconUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    iconRetinaUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize:[25,41],iconAnchor:[12,41],shadowSize:[41,41]
+  })
+};
+
+function initMap(){
+  baseLayer = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    { attribution: '&copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community' }
+  );
+  map = L.map('farmMap', { center:[13.736,100.523], zoom:15, layers:[baseLayer, layerWork, layerDisease] });
+
+  // Legend
+  const legend = L.control({position:'topright'});
+  legend.onAdd = function(){
+    const div = L.DomUtil.create('div','legend');
+    div.innerHTML = `
+      <div><span class="dot" style="background:#39d353"></span> รดน้ำเสร็จแล้ว</div>
+      <div><span class="dot" style="background:#ffd33d"></span> กำลังรด</div>
+      <div><span class="dot" style="background:#ff4d4f"></span> ยังไม่รด</div>
+      <hr style="border:none;border-top:1px solid #ddd;margin:6px 0">
+      <div><span class="dot" style="background:#a97cff"></span> จุดพบโรค</div>`;
+    return div;
+  }; legend.addTo(map);
+
+  // คลิกบนแผนที่
+  map.on('click', (e)=>{
+    if(pendingDisease){
+      placeDiseaseMarker(e.latlng.lat, e.latlng.lng, pendingDisease.cls, pendingDisease.prob);
+      pendingDisease = null; return;
+    }
+    placeWorkMarker(e.latlng.lat, e.latlng.lng, clickColor);
+    saveWorkMarkers();
+  });
+
+  loadWorkMarkers();
+  loadDiseaseMarkers();
+}
+
+function loc_setClickColor(c){
+  clickColor = c;
+  if(map){
+    L.popup().setLatLng(map.getCenter()).setContent('โหมดหมุด: '+(c==='green'?'เขียว':c==='yellow'?'เหลือง':'แดง')).openOn(map);
+  }
+}
+function loc_clear(){
+  const toRemove = [];
+  layerWork.eachLayer(l=>{
+    if(l !== window._userMarker && l !== accCircle) toRemove.push(l);
+  });
+  toRemove.forEach(l=>layerWork.removeLayer(l));
+  localStorage.removeItem(LS_WORK);
+}
+
+// ออฟเซ็ตคาลิเบรต
+function readOffset(){ try{ return JSON.parse(localStorage.getItem('sf_gps_offset')||'null'); }catch{ return null } }
+function saveOffset(dlat, dlng){ localStorage.setItem('sf_gps_offset', JSON.stringify({dlat, dlng})); }
+function clearOffset(){ localStorage.removeItem('sf_gps_offset'); }
+
+// ขอพิกัดหลายชั้น (Browser precise → coarse → IP API → (ออปชัน) Google)
+function getAccuratePosition({desired=25, timeout=15000}={}){
+  return new Promise((resolve, reject)=>{
+    if(!navigator.geolocation) return reject(new Error('no geolocation'));
+    let best=null; const start=Date.now();
+    const id = navigator.geolocation.watchPosition(
+      pos=>{
+        best = (!best || pos.coords.accuracy < best.coords.accuracy) ? pos : best;
+        if(pos.coords.accuracy <= desired){ navigator.geolocation.clearWatch(id); resolve(best); }
+        else if(Date.now()-start>timeout){ navigator.geolocation.clearWatch(id); resolve(best||pos); }
+      },
+      err=>{ navigator.geolocation.clearWatch(id); reject(err); },
+      { enableHighAccuracy:true, maximumAge:0, timeout }
+    );
+  });
+}
+const getCoarse = ({timeout=12000}={}) =>
+  new Promise((resolve, reject)=>{
+    if(!navigator.geolocation) return reject(new Error('no geolocation'));
+    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy:false, maximumAge:60000, timeout });
+  });
+async function ipGeo(){
+  const r = await fetch('https://ipapi.co/json/');
+  if(!r.ok) throw new Error('ipapi fail');
+  const j = await r.json();
+  if(j.latitude==null || j.longitude==null) throw new Error('ipapi no lat/lng');
+  return { lat:Number(j.latitude), lng:Number(j.longitude), acc:10000, source:'ipapi' };
+}
+async function googleGeo(apiKey){
+  const r = await fetch(`https://www.googleapis.com/geolocation/v1/geolocate?key=${apiKey}`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ considerIp: true })
+  });
+  if(!r.ok) throw new Error('google geo fail');
+  const j = await r.json();
+  return { lat:j.location.lat, lng:j.location.lng, acc:j.accuracy||100, source:'google' };
+}
+async function getSmartPosition({useGoogle=false, googleKey=''}={}){
+  try{
+    const p = await getAccuratePosition({desired:25, timeout:15000});
+    return { lat:p.coords.latitude, lng:p.coords.longitude, acc:p.coords.accuracy, source:'browser' };
+  }catch{
+    try{
+      const p = await getCoarse({timeout:12000});
+      return { lat:p.coords.latitude, lng:p.coords.longitude, acc:p.coords.accuracy, source:'browser-coarse' };
+    }catch{
+      try{ return await ipGeo(); }
+      catch{
+        if(useGoogle && googleKey) return await googleGeo(googleKey);
+        throw new Error('no position available');
+      }
+    }
+  }
+}
+async function loc_readGPS(){
+  try{
+    const pos = await getSmartPosition({ /*useGoogle:true, googleKey:'YOUR_API_KEY'*/ });
+    lastRawPos = { lat: pos.lat, lng: pos.lng, acc: pos.acc };
+
+    const off = readOffset();
+    const lat = lastRawPos.lat + (off?.dlat || 0);
+    const lng = lastRawPos.lng + (off?.dlng || 0);
+
+    if(!map) initMap();
+
+    if(accCircle){ layerWork.removeLayer(accCircle); accCircle=null; }
+    accCircle = L.circle([lat, lng], { radius: Math.max(lastRawPos.acc, 8), color:'#3388ff', fillOpacity:0.1 }).addTo(layerWork);
+
+    if(window._userMarker){ layerWork.removeLayer(window._userMarker); }
+    window._userMarker = L.marker([lat, lng], {icon:ICONS.user})
+      .bindPopup(`ตำแหน่งฉัน<br>${lat.toFixed(6)}, ${lng.toFixed(6)}<br><small>accuracy ~ ${Math.round(lastRawPos.acc)} m • source: ${pos.source}</small>`)
+      .addTo(layerWork).openPopup();
+
+    map.setView([lat, lng], lastRawPos.acc > 8000 ? 13 : lastRawPos.acc > 80 ? 16 : 17);
+  }catch(err){
+    alert('อ่านพิกัดไม่สำเร็จ: ' + err.message +
+      '\n• เปิดผ่าน http://localhost หรือ HTTPS\n• อนุญาต Location ให้เบราว์เซอร์');
+  }
+}
+function loc_calibrate(){
+  if(!map){ showPage('location'); initMap(); }
+  if(!lastRawPos){ alert('กด "อ่านพิกัด" ก่อนแล้วค่อยปรับเทียบ'); return; }
+  const tip = L.popup().setLatLng(map.getCenter()).setContent('คลิกบนแผนที่ตำแหน่งที่ยืนจริง').openOn(map);
+  const once = (e)=>{
+    map.off('click', once); map.closePopup(tip);
+    const t = e.latlng;
+    saveOffset(t.lat-lastRawPos.lat, t.lng-lastRawPos.lng);
+    if(window._userMarker){ layerWork.removeLayer(window._userMarker); }
+    window._userMarker = L.marker([t.lat, t.lng], {icon:ICONS.user})
+      .bindPopup(`ตำแหน่งฉัน (หลังปรับเทียบ)<br>${t.lat.toFixed(6)}, ${t.lng.toFixed(6)}`).addTo(layerWork).openPopup();
+    if(accCircle){ layerWork.removeLayer(accCircle); }
+    accCircle = L.circle([t.lat, t.lng], { radius: Math.max(lastRawPos.acc, 8), color:'#3388ff', fillOpacity:0.1 }).addTo(layerWork);
+  };
+  map.on('click', once);
+}
+function loc_clearCal(){ clearOffset(); alert('ล้างออฟเซ็ตแล้ว ✅'); loc_readGPS(); }
+
+// หมุดงาน/โรค + persist
+function placeWorkMarker(lat,lng,color='green'){
+  const mk = L.marker([lat,lng], {icon:ICONS[color]}).addTo(layerWork);
+  mk.bindPopup(`งานรดน้ำ: <b>${color}</b><br>${lat.toFixed(6)}, ${lng.toFixed(6)}<br><button onclick="loc_deleteWork(${lat},${lng})">ลบ</button>`);
+}
+function loc_deleteWork(lat,lng){
+  layerWork.eachLayer(layer=>{
+    const p = layer.getLatLng?.(); if(p && p.lat.toFixed(6)==lat.toFixed(6) && p.lng.toFixed(6)==lng.toFixed(6)){
+      layerWork.removeLayer(layer); saveWorkMarkers();
+    }
+  });
+}
+function saveWorkMarkers(){
+  const arr = [];
+  layerWork.eachLayer(layer=>{
+    if(layer===window._userMarker || layer===accCircle) return; // อย่าเซฟวง accuracy/หมุดผู้ใช้
+    const p = layer.getLatLng?.(); if(!p) return;
+    const html = layer.options.icon?.options?.html || '';
+    const color = html.includes('#ff4d4f') ? 'red' : html.includes('#ffd33d') ? 'yellow' : 'green';
+    arr.push({lat:p.lat,lng:p.lng,color});
+  });
+  localStorage.setItem(LS_WORK, JSON.stringify(arr));
+}
+function loadWorkMarkers(){
+  try{ (JSON.parse(localStorage.getItem(LS_WORK)||'[]')||[]).forEach(m=>placeWorkMarker(m.lat,m.lng,m.color)); }catch{}
+}
+function placeDiseaseMarker(lat,lng,cls,prob){
+  const mk = L.marker([lat,lng], {icon:ICONS.disease}).addTo(layerDisease);
+  const ts = new Date().toLocaleString();
+  mk.bindPopup(`จุดพบโรค: <b>${cls}</b><br>ความมั่นใจ ${(prob*100).toFixed(1)}%<br>${lat.toFixed(6)}, ${lng.toFixed(6)}<br><i>${ts}</i>
+    <br><button onclick="loc_deleteDisease(${lat},${lng})">ลบ</button>`).openPopup();
+  saveDiseaseMarkers();
+}
+function loc_deleteDisease(lat,lng){
+  layerDisease.eachLayer(layer=>{
+    const p = layer.getLatLng?.(); if(p && p.lat.toFixed(6)==lat.toFixed(6) && p.lng.toFixed(6)==lng.toFixed(6)){
+      layerDisease.removeLayer(layer); saveDiseaseMarkers();
+    }
+  });
+}
+function saveDiseaseMarkers(){
+  const arr = [];
+  layerDisease.eachLayer(layer=>{
+    const p = layer.getLatLng?.(); if(!p) return;
+    const meta = layer.getPopup()?.getContent() || '';
+    const m = /จุดพบโรค:\s*<b>(.*?)<\/b>.*?(\d+(?:\.\d+)?)%/s.exec(meta);
+    arr.push({lat:p.lat,lng:p.lng,cls:m?m[1]:'Unknown',prob:m?Number(m[2])/100:0});
+  });
+  localStorage.setItem(LS_DISEASE, JSON.stringify(arr));
+}
+function loadDiseaseMarkers(){
+  try{ (JSON.parse(localStorage.getItem(LS_DISEASE)||'[]')||[]).forEach(m=>placeDiseaseMarker(m.lat,m.lng,m.cls,m.prob)); }catch{}
+}
+async function diseaseToMap(cls, prob){
+  if(!map){ showPage('location'); initMap(); }
+  try{
+    const p = await getSmartPosition();
+    placeDiseaseMarker(p.lat, p.lng, cls, prob);
+    map.setView([p.lat,p.lng], 18);
+  }catch{
+    pendingDisease = {cls, prob};
+    showPage('location');
+    L.popup().setLatLng(map.getCenter()).setContent('คลิกบนแผนที่เพื่อวาง “จุดพบโรค”').openOn(map);
+  }
+}
+window.diseaseToMap = diseaseToMap;
+/* ===================== /MAP + GPS ===================== */
+
+    // -------- Router --------
+    function showPage(id){
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===id));
+      localStorage.setItem('sf_last', id);
+      if(id==='location' && !map){ initMap(); }   // เรียกสร้างแผนที่เมื่อเข้าแท็บ
+    }
+
+    (function init(){
+      const last = localStorage.getItem('sf_last'); if(last && document.getElementById(last)) showPage(last);
+      const theme = localStorage.getItem('sf_theme') || 'light'; document.documentElement.dataset.theme = theme;
+      const farm = localStorage.getItem('sf_farm')||''; const owner = localStorage.getItem('sf_owner')||'';
+      document.getElementById('accFarm').value = farm; document.getElementById('accOwner').value = owner;
+      document.getElementById('locInput').value = localStorage.getItem('sf_loc')||'';
+      renderTasks();
+      demoFillHome();
+      if(document.getElementById('location').classList.contains('active')) initMap();
+    })();
+
+    document.getElementById('btnTheme')?.addEventListener('click', ()=>{
+      const cur = document.documentElement.dataset.theme==='dark'?'light':'dark';
+      document.documentElement.dataset.theme = cur;
+      localStorage.setItem('sf_theme', cur);
+    });
+
+    document.getElementById('btnFetch')?.addEventListener('click', demoFillHome);
+    function demoFillHome(){
+      const loc = document.getElementById('locInput').value.trim() || 'กรุงเทพฯ · กลางเมือง';
+      localStorage.setItem('sf_loc', loc);
+      const w = { temp: 31, humid: 72, cond:'มีเมฆบางส่วน', rain: 35 };
+      document.getElementById('weatherBox').innerHTML =
+        `<div><b>${loc}</b></div>
+         <div>อุณหภูมิ ${w.temp}°C · ความชื้น ${w.humid}%</div>
+         <div>สภาพ: ${w.cond} · โอกาสฝน ${w.rain}%</div>
+         <div class="help">TODO: ต่อ API พยากรณ์จริง</div>`;
+      const prices = [
+        {name:'กล้วยหอม', unit:'กก.', price:27},
+        {name:'มะม่วงน้ำดอกไม้', unit:'กก.', price:45},
+        {name:'ทุเรียนหมอนทอง', unit:'กก.', price:155},
+      ];
+      document.getElementById('priceBox').innerHTML =
+        prices.map(p=>`• ${p.name} ~ <b>${p.price}</b> บาท/${p.unit}`).join('<br>')+
+        `<div class="help">แหล่งราคา: ตลาดกลาง (ตัวอย่าง)</div>`;
+    }
+
+    // -------- Disease demo --------
+    document.getElementById('diseaseFile')?.addEventListener('change', (e)=>{
+      const f = e.target.files[0]; if(!f) return;
+      const url = URL.createObjectURL(f);
+      document.getElementById('diseasePreview').innerHTML =
+        `<img src="${url}" style="max-width:100%; border-radius:12px">`;
+    });
+    document.getElementById('btnDiseaseDemo')?.addEventListener('click', ()=>{
+      const txt = "เดาแบบเดโม่: ใบมีจุดน้ำตาล อาจเป็นแอนแทรคโนส\nคำแนะนำ: เก็บเศษใบ เพิ่มการถ่ายเทอากาศ พ่นชีวภัณฑ์สลับสูตร";
+      document.getElementById('diseaseResult').value = txt;
+      document.getElementById('top3Box').innerHTML = "• A1 — 76.2%<br>• Healthy — 18.9%<br>• A2 — 4.9%";
+    });
+
+    // -------- Tasks --------
+    function readTasks(){ try{ return JSON.parse(localStorage.getItem('sf_tasks')||'[]'); }catch{ return [] } }
+    function writeTasks(list){ localStorage.setItem('sf_tasks', JSON.stringify(list)); }
+    function addTask(){
+      const name = document.getElementById('taskName').value.trim();
+      const date = document.getElementById('taskDate').value || new Date().toISOString().slice(0,10);
+      const area = document.getElementById('taskArea').value.trim();
+      const note = document.getElementById('taskNote').value.trim();
+      if(!name){ alert('กรอกชื่องานก่อน'); return }
+      const items = readTasks(); items.unshift({date,name,area,note}); writeTasks(items); renderTasks();
+      document.getElementById('taskName').value=''; document.getElementById('taskNote').value='';
+    }
+    function delTask(idx){ const items = readTasks(); items.splice(idx,1); writeTasks(items); renderTasks(); }
+    function renderTasks(){
+      const tb = document.querySelector('#taskTable tbody'); tb.innerHTML='';
+      readTasks().forEach((t,i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${t.date}</td><td>${t.name}</td><td>${t.area||'-'}</td><td>${t.note||'-'}</td>
+                        <td><button onclick="delTask(${i})">ลบ</button></td>`;
+        tb.appendChild(tr);
+      });
+    }
+    function exportCSV(){
+      const rows = [['วันที่','งาน','พื้นที่','หมายเหตุ'], ...readTasks().map(t=>[t.date,t.name,t.area||'',t.note||''])];
+      const csv = rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const url = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+      const a = Object.assign(document.createElement('a'), {href:url, download:'smartfarm-tasks.csv'}); a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // -------- หมุดโรคจากหน้า Disease --------
+    window.diseaseToMap = diseaseToMap;
+
+    // -------- Account / Chat helpers --------
+    function saveAccount(){
+      localStorage.setItem('sf_farm', document.getElementById('accFarm').value.trim());
+      localStorage.setItem('sf_owner', document.getElementById('accOwner').value.trim());
+      document.getElementById('accMsg').textContent = 'บันทึกแล้ว ✅';
+      setTimeout(()=>document.getElementById('accMsg').textContent='', 2000);
+    }
+    function demoChat(){
+      const box = document.getElementById('chatBox');
+      const q = document.getElementById('chatInput').value.trim();
+      if(!q) return;
+      const div = document.createElement('div');
+      div.innerHTML = `<b>คุณ:</b> ${q}<br><b>บอท:</b> เดโม่จ้า — ฟีเจอร์แชทยังไม่ต่อ API`;
+      box.appendChild(div);
+      document.getElementById('chatInput').value='';
+    }
+  </script>
+</body>
+</html>
