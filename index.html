@@ -281,6 +281,7 @@
       <div class="flex" style="margin-top:8px">
         <button onclick="loc_calibrate()">ปรับเทียบพิกัด</button>
         <button onclick="loc_clearCal()">ล้างออฟเซ็ต</button>
+        <button onclick="loc_goFarm()">ไปที่ฟาร์ม 🏡</button>
       </div>
 
       <div id="farmMap" style="margin-top:10px"></div>
@@ -313,16 +314,22 @@
   </nav>
 
   <script>
-/* ===================== MAP + GPS (อยู่บนสุดเพื่อกัน TDZ) ===================== */
+/* ===================== MAP + GPS ===================== */
 let map, baseLayer, clickColor='green';
 const layerWork = L.layerGroup();
 const layerDisease = L.layerGroup();
+
 const LS_WORK = 'sf_map_work_v1';
 const LS_DISEASE = 'sf_map_disease_v1';
-let pendingDisease = null;
-let accCircle = null;   // วงความแม่นยำ
-let lastRawPos = null;  // พิกัดดิบก่อนออฟเซ็ต
+const LS_FARM_HOME = 'sf_farm_home_v1';      // key ตำแหน่งฟาร์มถาวร
 
+let pendingDisease = null;
+let accCircle = null;        // วงความแม่นยำ
+let lastRawPos = null;       // พิกัดดิบก่อนออฟเซ็ต
+window._userMarker = null;   // หมุดฉัน (runtime)
+window._farmMarker = null;   // หมุดฟาร์ม (persistent)
+
+// ---- icons ----
 function colorIcon(color){
   const html = `<div style="position:relative;width:20px;height:20px;background:${color};border-radius:50%;
     border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.4);"></div>`;
@@ -332,6 +339,11 @@ function diseaseIcon(){
   const html = `<div style="position:relative;width:22px;height:22px;background:#a97cff;border-radius:50%;
     border:2px solid #fff;box-shadow:0 0 8px rgba(0,0,0,.5);"></div>`;
   return L.divIcon({className:'', html, iconSize:[22,22], iconAnchor:[11,11]});
+}
+function farmIcon(){
+  const html = `<div style="position:relative;width:24px;height:24px;border-radius:50%;
+    background:#4caf50;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">🏡</div>`;
+  return L.divIcon({className:'', html, iconSize:[24,24], iconAnchor:[12,12]});
 }
 const ICONS = {
   green:  colorIcon('#39d353'),
@@ -343,15 +355,73 @@ const ICONS = {
     iconRetinaUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
     shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
     iconSize:[25,41],iconAnchor:[12,41],shadowSize:[41,41]
-  })
+  }),
+  farm: farmIcon()
 };
+
+// ---- cookie helpers (fallback เมื่อ localStorage ไม่ persist) ----
+function setCookie(name, value, days=365){
+  const d = new Date(); d.setTime(d.getTime() + (days*24*60*60*1000));
+  document.cookie = name + "=" + encodeURIComponent(value) + ";expires=" + d.toUTCString() + ";path=/;SameSite=Lax";
+}
+function getCookie(name){
+  const m = document.cookie.match(new RegExp('(?:^|; )'+name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&')+'=([^;]*)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+// ---- farm home persist helpers ----
+function _readFarmHomeLS(){
+  try{ return JSON.parse(localStorage.getItem(LS_FARM_HOME)||'null'); }catch{ return null }
+}
+function _writeFarmHomeLS(obj){
+  try{ localStorage.setItem(LS_FARM_HOME, JSON.stringify(obj)); }catch{}
+}
+function readFarmHome(){
+  let fh = _readFarmHomeLS();
+  if (fh && typeof fh.lat==='number' && typeof fh.lng==='number') return fh;
+  const c = getCookie(LS_FARM_HOME);
+  if (c) {
+    try {
+      fh = JSON.parse(c);
+      if (fh && typeof fh.lat==='number' && typeof fh.lng==='number'){
+        _writeFarmHomeLS(fh);  // sync กลับเข้า LS
+        return fh;
+      }
+    }catch{}
+  }
+  return null;
+}
+function saveFarmHome(lat,lng){
+  const obj = {lat, lng};
+  _writeFarmHomeLS(obj);
+  setCookie(LS_FARM_HOME, JSON.stringify(obj)); // สำรองลงคุกกี้ด้วย
+  renderFarmHome();
+}
+function clearFarmHome(){
+  try{ localStorage.removeItem(LS_FARM_HOME); }catch{}
+  setCookie(LS_FARM_HOME, "", -1); // ลบคุกกี้
+  if(window._farmMarker){ layerWork.removeLayer(window._farmMarker); window._farmMarker=null; }
+}
+function renderFarmHome(){
+  const fh = readFarmHome();
+  if(!map || !fh) return;
+  if(window._farmMarker){ layerWork.removeLayer(window._farmMarker); window._farmMarker=null; }
+  window._farmMarker = L.marker([fh.lat, fh.lng], {icon:ICONS.farm})
+    .bindPopup(`🏡 <b>ตำแหน่งฟาร์ม</b><br>${fh.lat.toFixed(6)}, ${fh.lng.toFixed(6)}<br><small>จะอยู่จนกว่าจะ “ล้างออฟเซ็ต”</small>`)
+    .addTo(layerWork);
+}
 
 function initMap(){
   baseLayer = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     { attribution: '&copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community' }
   );
-  map = L.map('farmMap', { center:[13.736,100.523], zoom:15, layers:[baseLayer, layerWork, layerDisease] });
+  const fh = readFarmHome();
+  map = L.map('farmMap', {
+    center: fh ? [fh.lat, fh.lng] : [13.736,100.523],
+    zoom: fh ? 17 : 15,
+    layers:[baseLayer, layerWork, layerDisease]
+  });
 
   // Legend
   const legend = L.control({position:'topright'});
@@ -362,7 +432,8 @@ function initMap(){
       <div><span class="dot" style="background:#ffd33d"></span> กำลังรด</div>
       <div><span class="dot" style="background:#ff4d4f"></span> ยังไม่รด</div>
       <hr style="border:none;border-top:1px solid #ddd;margin:6px 0">
-      <div><span class="dot" style="background:#a97cff"></span> จุดพบโรค</div>`;
+      <div><span class="dot" style="background:#a97cff"></span> จุดพบโรค</div>
+      <div><span class="dot" style="background:#4caf50"></span> ตำแหน่งฟาร์ม</div>`;
     return div;
   }; legend.addTo(map);
 
@@ -376,6 +447,8 @@ function initMap(){
     saveWorkMarkers();
   });
 
+  // render persisted things
+  renderFarmHome();
   loadWorkMarkers();
   loadDiseaseMarkers();
 }
@@ -389,7 +462,7 @@ function loc_setClickColor(c){
 function loc_clear(){
   const toRemove = [];
   layerWork.eachLayer(l=>{
-    if(l !== window._userMarker && l !== accCircle) toRemove.push(l);
+    if(l !== window._userMarker && l !== accCircle && l !== window._farmMarker) toRemove.push(l);   // กันลบหมุดฟาร์ม
   });
   toRemove.forEach(l=>layerWork.removeLayer(l));
   localStorage.removeItem(LS_WORK);
@@ -400,7 +473,7 @@ function readOffset(){ try{ return JSON.parse(localStorage.getItem('sf_gps_offse
 function saveOffset(dlat, dlng){ localStorage.setItem('sf_gps_offset', JSON.stringify({dlat, dlng})); }
 function clearOffset(){ localStorage.removeItem('sf_gps_offset'); }
 
-// ขอพิกัดหลายชั้น (Browser precise → coarse → IP API → (ออปชัน) Google)
+// ขอพิกัดหลายชั้น
 function getAccuratePosition({desired=25, timeout=15000}={}){
   return new Promise((resolve, reject)=>{
     if(!navigator.geolocation) return reject(new Error('no geolocation'));
@@ -455,7 +528,7 @@ async function getSmartPosition({useGoogle=false, googleKey=''}={}){
 }
 async function loc_readGPS(){
   try{
-    const pos = await getSmartPosition({ /*useGoogle:true, googleKey:'YOUR_API_KEY'*/ });
+    const pos = await getSmartPosition();
     lastRawPos = { lat: pos.lat, lng: pos.lng, acc: pos.acc };
 
     const off = readOffset();
@@ -472,6 +545,9 @@ async function loc_readGPS(){
       .bindPopup(`ตำแหน่งฉัน<br>${lat.toFixed(6)}, ${lng.toFixed(6)}<br><small>accuracy ~ ${Math.round(lastRawPos.acc)} m • source: ${pos.source}</small>`)
       .addTo(layerWork).openPopup();
 
+    // ถ้ายังไม่เคยเซฟฟาร์ม ให้เซฟจากพิกัดหลังชดเชยออฟเซ็ตครั้งแรก
+    if(!readFarmHome()) saveFarmHome(lat, lng);
+
     map.setView([lat, lng], lastRawPos.acc > 8000 ? 13 : lastRawPos.acc > 80 ? 16 : 17);
   }catch(err){
     alert('อ่านพิกัดไม่สำเร็จ: ' + err.message +
@@ -485,16 +561,33 @@ function loc_calibrate(){
   const once = (e)=>{
     map.off('click', once); map.closePopup(tip);
     const t = e.latlng;
+    // เซฟ offset + เซฟฟาร์มถาวร
     saveOffset(t.lat-lastRawPos.lat, t.lng-lastRawPos.lng);
+    saveFarmHome(t.lat, t.lng);   // ตั้งบ้านฟาร์มจากตำแหน่งจริง
+
     if(window._userMarker){ layerWork.removeLayer(window._userMarker); }
     window._userMarker = L.marker([t.lat, t.lng], {icon:ICONS.user})
       .bindPopup(`ตำแหน่งฉัน (หลังปรับเทียบ)<br>${t.lat.toFixed(6)}, ${t.lng.toFixed(6)}`).addTo(layerWork).openPopup();
     if(accCircle){ layerWork.removeLayer(accCircle); }
     accCircle = L.circle([t.lat, t.lng], { radius: Math.max(lastRawPos.acc, 8), color:'#3388ff', fillOpacity:0.1 }).addTo(layerWork);
+
+    map.setView([t.lat, t.lng], 18);
   };
   map.on('click', once);
 }
-function loc_clearCal(){ clearOffset(); alert('ล้างออฟเซ็ตแล้ว ✅'); loc_readGPS(); }
+function loc_clearCal(){
+  clearOffset();
+  clearFarmHome();    // ล้างตำแหน่งฟาร์มด้วย
+  alert('ล้างออฟเซ็ตและตำแหน่งฟาร์มแล้ว ✅');
+  loc_readGPS();
+}
+function loc_goFarm(){
+  if(!map){ showPage('location'); initMap(); }
+  const fh = readFarmHome();
+  if(!fh){ alert('ยังไม่ได้ตั้งตำแหน่งฟาร์ม\nกด "อ่านพิกัด" แล้ว "ปรับเทียบพิกัด" ก่อนจ้า'); return; }
+  map.setView([fh.lat, fh.lng], 18);
+  if(window._farmMarker) window._farmMarker.openPopup();
+}
 
 // หมุดงาน/โรค + persist
 function placeWorkMarker(lat,lng,color='green'){
@@ -511,7 +604,7 @@ function loc_deleteWork(lat,lng){
 function saveWorkMarkers(){
   const arr = [];
   layerWork.eachLayer(layer=>{
-    if(layer===window._userMarker || layer===accCircle) return;
+    if(layer===window._userMarker || layer===accCircle || layer===window._farmMarker) return; // กันเซฟหมุดฟาร์ม
     const p = layer.getLatLng?.(); if(!p) return;
     const html = layer.options.icon?.options?.html || '';
     const color = html.includes('#ff4d4f') ? 'red' : html.includes('#ffd33d') ? 'yellow' : 'green';
@@ -665,7 +758,7 @@ window.diseaseToMap = diseaseToMap;
     }
 
     /* ======= แชท: ต่อ Gemini โดยตรง (ระวังคีย์โผล่) ======= */
-    const GEMINI_API_KEY = 'AIzaSyBCbwvS7PGXQZYxn2xLJ-VJMRMSaNItRFE'; // <<<< มึงให้มา
+    const GEMINI_API_KEY = 'AIzaSyBCbwvS7PGXQZYxn2xLJ-VJMRMSaNItRFE';
     const GEMINI_MODEL  = 'gemini-1.5-flash';
     const GEMINI_URL    = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
 
