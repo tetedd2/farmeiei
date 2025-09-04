@@ -511,7 +511,7 @@ function loc_deleteWork(lat,lng){
 function saveWorkMarkers(){
   const arr = [];
   layerWork.eachLayer(layer=>{
-    if(layer===window._userMarker || layer===accCircle) return; // อย่าเซฟวง accuracy/หมุดผู้ใช้
+    if(layer===window._userMarker || layer===accCircle) return;
     const p = layer.getLatLng?.(); if(!p) return;
     const html = layer.options.icon?.options?.html || '';
     const color = html.includes('#ff4d4f') ? 'red' : html.includes('#ffd33d') ? 'yellow' : 'green';
@@ -570,7 +570,7 @@ window.diseaseToMap = diseaseToMap;
       document.getElementById(id).classList.add('active');
       document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===id));
       localStorage.setItem('sf_last', id);
-      if(id==='location' && !map){ initMap(); }   // เรียกสร้างแผนที่เมื่อเข้าแท็บ
+      if(id==='location' && !map){ initMap(); }
     }
 
     (function init(){
@@ -656,22 +656,66 @@ window.diseaseToMap = diseaseToMap;
     // -------- หมุดโรคจากหน้า Disease --------
     window.diseaseToMap = diseaseToMap;
 
-    // -------- Account / Chat helpers --------
+    // -------- Account helpers --------
     function saveAccount(){
       localStorage.setItem('sf_farm', document.getElementById('accFarm').value.trim());
       localStorage.setItem('sf_owner', document.getElementById('accOwner').value.trim());
       document.getElementById('accMsg').textContent = 'บันทึกแล้ว ✅';
       setTimeout(()=>document.getElementById('accMsg').textContent='', 2000);
     }
-    function demoChat(){
-      const box = document.getElementById('chatBox');
-      const q = document.getElementById('chatInput').value.trim();
-      if(!q) return;
-      const div = document.createElement('div');
-      div.innerHTML = `<b>คุณ:</b> ${q}<br><b>บอท:</b> เดโม่จ้า — ฟีเจอร์แชทยังไม่ต่อ API`;
-      box.appendChild(div);
-      document.getElementById('chatInput').value='';
+
+    /* ======= แชท: ต่อ Gemini โดยตรง (ระวังคีย์โผล่) ======= */
+    const GEMINI_API_KEY = 'AIzaSyBCbwvS7PGXQZYxn2xLJ-VJMRMSaNItRFE'; // <<<< มึงให้มา
+    const GEMINI_MODEL  = 'gemini-1.5-flash';
+    const GEMINI_URL    = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+
+    function extractText(resp) {
+      try {
+        const c = resp.candidates?.[0]?.content?.parts?.[0]?.text;
+        return c || '(ไม่มีคำตอบ)';
+      } catch { return '(ไม่มีคำตอบ)'; }
     }
+
+async function demoChat(){
+  const box = document.getElementById('chatBox');
+  const q = document.getElementById('chatInput').value.trim();
+  if(!q) return;
+
+  const you = document.createElement('div');
+  you.innerHTML = `<b>คุณ:</b> ${q}`;
+  box.appendChild(you);
+
+  try {
+    const r = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: q }]}]
+      })
+    });
+
+    if (!r.ok) {
+      let msg = r.status + ' ' + r.statusText;
+      try { const j = await r.json(); msg = j.error?.message || msg; } catch {}
+      throw new Error(msg);
+    }
+    const data = await r.json();
+    const reply = extractText(data);
+
+    const bot = document.createElement('div');
+    bot.innerHTML = `<b>บอท:</b> ${reply}`;
+    box.appendChild(bot);
+  } catch (e) {
+    const err = document.createElement('div');
+    err.style.color = 'crimson';
+    err.innerHTML = `<b>ผิดพลาด:</b> ${e.message || 'Failed to fetch'}`;
+    box.appendChild(err);
+    console.error(e);
+  }
+
+  document.getElementById('chatInput').value='';
+}
+    /* ======= /แชท ======= */
   </script>
 </body>
 </html>
