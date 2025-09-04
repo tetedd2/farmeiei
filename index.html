@@ -86,8 +86,38 @@
     .legend{ background:rgba(255,255,255,.92); padding:8px 10px; border-radius:10px; font-size:12px }
     .legend .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
 
-    @media (max-width:900px){ .menu-grid{ grid-template-columns:repeat(2,1fr) } }
-    @media (max-width:560px){ .menu-grid{ grid-template-columns:1fr } .row,.row-3{ grid-template-columns:1fr } }
+    /* ===== Videos (Care page) ===== */
+    .video-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .video-card{background:var(--layer);border-radius:20px;padding:14px;box-shadow:var(--shadow);cursor:pointer;transition:transform .2s ease}
+    .video-card:hover{transform:translateY(-3px)}
+    .video-thumb{position:relative;border-radius:14px;overflow:hidden;aspect-ratio:16/9;background:#dcdcdc;display:flex;align-items:center;justify-content:center}
+    .video-thumb img{width:100%;height:100%;object-fit:cover;filter:saturate(.95) contrast(1.02)}
+    .play{
+      position:absolute;width:70px;height:70px;background:#ff5252;border-radius:22px;
+      display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);opacity:.95
+    }
+    .play:after{
+      content:"";border-left:24px solid #fff;border-top:15px solid transparent;border-bottom:15px solid transparent;margin-left:6px
+    }
+    .video-title{margin:10px 6px 0;font-weight:700;color:var(--ink);line-height:1.35}
+
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:9999}
+    .modal.show{display:flex}
+    .modal-box{width:min(100%,960px);aspect-ratio:16/9;background:#000;border-radius:16px;overflow:hidden;box-shadow:var(--shadow);position:relative}
+    .modal-box iframe{width:100%;height:100%;border:0}
+    .modal-close{
+      position:absolute;top:14px;right:14px;background:#fff;border:0;border-radius:12px;padding:8px 10px;font-weight:800;cursor:pointer
+    }
+
+    @media (max-width:900px){
+      .menu-grid{ grid-template-columns:repeat(2,1fr) }
+      .video-grid{ grid-template-columns:repeat(2,1fr) }
+    }
+    @media (max-width:560px){
+      .menu-grid{ grid-template-columns:1fr }
+      .row,.row-3{ grid-template-columns:1fr }
+      .video-grid{ grid-template-columns:1fr }
+    }
   </style>
 </head>
 <body>
@@ -162,16 +192,20 @@
     </div>
   </section>
 
-  <!-- CARE -->
+  <!-- CARE (คลิป) -->
   <section id="care" class="page">
     <div class="header"><h1 class="title">🌱 การดูแลพืช</h1></div>
+
     <div class="card">
-      <h2>ทิปส์ช่วงฝน</h2>
-      <ul>
-        <li>คลุมดินลดการกระเด็นของเชื้อรา</li>
-        <li>ตรวจน้ำขังรอบโคนต้น</li>
-        <li>พ่นชีวภัณฑ์สลับสูตรทุก 7–10 วัน</li>
-      </ul>
+      <div id="careGrid" class="video-grid"></div>
+    </div>
+
+    <!-- Modal เล่นวิดีโอ -->
+    <div id="videoModal" class="modal" aria-hidden="true">
+      <div class="modal-box">
+        <iframe id="videoFrame" title="YouTube player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="origin"></iframe>
+        <button class="modal-close" onclick="closeVideo()">✕</button>
+      </div>
     </div>
   </section>
 
@@ -314,22 +348,21 @@
   </nav>
 
   <script>
-/* ===================== MAP + GPS ===================== */
+/* ===================== MAP + GPS (เหมือนเดิม + บันทึกฟาร์มถาวร) ===================== */
 let map, baseLayer, clickColor='green';
 const layerWork = L.layerGroup();
 const layerDisease = L.layerGroup();
 
 const LS_WORK = 'sf_map_work_v1';
 const LS_DISEASE = 'sf_map_disease_v1';
-const LS_FARM_HOME = 'sf_farm_home_v1';      // key ตำแหน่งฟาร์มถาวร
+const LS_FARM_HOME = 'sf_farm_home_v1';
 
 let pendingDisease = null;
-let accCircle = null;        // วงความแม่นยำ
-let lastRawPos = null;       // พิกัดดิบก่อนออฟเซ็ต
-window._userMarker = null;   // หมุดฉัน (runtime)
-window._farmMarker = null;   // หมุดฟาร์ม (persistent)
+let accCircle = null;
+let lastRawPos = null;
+window._userMarker = null;
+window._farmMarker = null;
 
-// ---- icons ----
 function colorIcon(color){
   const html = `<div style="position:relative;width:20px;height:20px;background:${color};border-radius:50%;
     border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.4);"></div>`;
@@ -359,52 +392,35 @@ const ICONS = {
   farm: farmIcon()
 };
 
-// ---- cookie helpers (fallback เมื่อ localStorage ไม่ persist) ----
 function setCookie(name, value, days=365){
   const d = new Date(); d.setTime(d.getTime() + (days*24*60*60*1000));
   document.cookie = name + "=" + encodeURIComponent(value) + ";expires=" + d.toUTCString() + ";path=/;SameSite=Lax";
 }
 function getCookie(name){
-  const m = document.cookie.match(new RegExp('(?:^|; )'+name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&')+'=([^;]*)'));
+  const m = document.cookie.match(new RegExp('(?:^|; )'+name.replace(/[-[\]{}()*+?.,\\^$|#\\s]/g,'\\$&')+'=([^;]*)'));
   return m ? decodeURIComponent(m[1]) : null;
 }
 
-// ---- farm home persist helpers ----
-function _readFarmHomeLS(){
-  try{ return JSON.parse(localStorage.getItem(LS_FARM_HOME)||'null'); }catch{ return null }
-}
-function _writeFarmHomeLS(obj){
-  try{ localStorage.setItem(LS_FARM_HOME, JSON.stringify(obj)); }catch{}
-}
+function _readFarmHomeLS(){ try{ return JSON.parse(localStorage.getItem(LS_FARM_HOME)||'null'); }catch{ return null } }
+function _writeFarmHomeLS(obj){ try{ localStorage.setItem(LS_FARM_HOME, JSON.stringify(obj)); }catch{} }
 function readFarmHome(){
   let fh = _readFarmHomeLS();
   if (fh && typeof fh.lat==='number' && typeof fh.lng==='number') return fh;
   const c = getCookie(LS_FARM_HOME);
   if (c) {
-    try {
-      fh = JSON.parse(c);
-      if (fh && typeof fh.lat==='number' && typeof fh.lng==='number'){
-        _writeFarmHomeLS(fh);  // sync กลับเข้า LS
-        return fh;
-      }
-    }catch{}
+    try { fh = JSON.parse(c); if(fh && fh.lat && fh.lng){ _writeFarmHomeLS(fh); return fh; } }catch{}
   }
   return null;
 }
 function saveFarmHome(lat,lng){
-  const obj = {lat, lng};
-  _writeFarmHomeLS(obj);
-  setCookie(LS_FARM_HOME, JSON.stringify(obj)); // สำรองลงคุกกี้ด้วย
-  renderFarmHome();
+  const obj = {lat,lng}; _writeFarmHomeLS(obj); setCookie(LS_FARM_HOME, JSON.stringify(obj)); renderFarmHome();
 }
 function clearFarmHome(){
-  try{ localStorage.removeItem(LS_FARM_HOME); }catch{}
-  setCookie(LS_FARM_HOME, "", -1); // ลบคุกกี้
+  try{ localStorage.removeItem(LS_FARM_HOME); }catch{} setCookie(LS_FARM_HOME, "", -1);
   if(window._farmMarker){ layerWork.removeLayer(window._farmMarker); window._farmMarker=null; }
 }
 function renderFarmHome(){
-  const fh = readFarmHome();
-  if(!map || !fh) return;
+  const fh = readFarmHome(); if(!map || !fh) return;
   if(window._farmMarker){ layerWork.removeLayer(window._farmMarker); window._farmMarker=null; }
   window._farmMarker = L.marker([fh.lat, fh.lng], {icon:ICONS.farm})
     .bindPopup(`🏡 <b>ตำแหน่งฟาร์ม</b><br>${fh.lat.toFixed(6)}, ${fh.lng.toFixed(6)}<br><small>จะอยู่จนกว่าจะ “ล้างออฟเซ็ต”</small>`)
@@ -423,7 +439,6 @@ function initMap(){
     layers:[baseLayer, layerWork, layerDisease]
   });
 
-  // Legend
   const legend = L.control({position:'topright'});
   legend.onAdd = function(){
     const div = L.DomUtil.create('div','legend');
@@ -437,7 +452,6 @@ function initMap(){
     return div;
   }; legend.addTo(map);
 
-  // คลิกบนแผนที่
   map.on('click', (e)=>{
     if(pendingDisease){
       placeDiseaseMarker(e.latlng.lat, e.latlng.lng, pendingDisease.cls, pendingDisease.prob);
@@ -447,7 +461,6 @@ function initMap(){
     saveWorkMarkers();
   });
 
-  // render persisted things
   renderFarmHome();
   loadWorkMarkers();
   loadDiseaseMarkers();
@@ -462,18 +475,16 @@ function loc_setClickColor(c){
 function loc_clear(){
   const toRemove = [];
   layerWork.eachLayer(l=>{
-    if(l !== window._userMarker && l !== accCircle && l !== window._farmMarker) toRemove.push(l);   // กันลบหมุดฟาร์ม
+    if(l !== window._userMarker && l !== accCircle && l !== window._farmMarker) toRemove.push(l);
   });
   toRemove.forEach(l=>layerWork.removeLayer(l));
   localStorage.removeItem(LS_WORK);
 }
 
-// ออฟเซ็ตคาลิเบรต
 function readOffset(){ try{ return JSON.parse(localStorage.getItem('sf_gps_offset')||'null'); }catch{ return null } }
 function saveOffset(dlat, dlng){ localStorage.setItem('sf_gps_offset', JSON.stringify({dlat, dlng})); }
 function clearOffset(){ localStorage.removeItem('sf_gps_offset'); }
 
-// ขอพิกัดหลายชั้น
 function getAccuratePosition({desired=25, timeout=15000}={}){
   return new Promise((resolve, reject)=>{
     if(!navigator.geolocation) return reject(new Error('no geolocation'));
@@ -545,7 +556,6 @@ async function loc_readGPS(){
       .bindPopup(`ตำแหน่งฉัน<br>${lat.toFixed(6)}, ${lng.toFixed(6)}<br><small>accuracy ~ ${Math.round(lastRawPos.acc)} m • source: ${pos.source}</small>`)
       .addTo(layerWork).openPopup();
 
-    // ถ้ายังไม่เคยเซฟฟาร์ม ให้เซฟจากพิกัดหลังชดเชยออฟเซ็ตครั้งแรก
     if(!readFarmHome()) saveFarmHome(lat, lng);
 
     map.setView([lat, lng], lastRawPos.acc > 8000 ? 13 : lastRawPos.acc > 80 ? 16 : 17);
@@ -561,9 +571,8 @@ function loc_calibrate(){
   const once = (e)=>{
     map.off('click', once); map.closePopup(tip);
     const t = e.latlng;
-    // เซฟ offset + เซฟฟาร์มถาวร
     saveOffset(t.lat-lastRawPos.lat, t.lng-lastRawPos.lng);
-    saveFarmHome(t.lat, t.lng);   // ตั้งบ้านฟาร์มจากตำแหน่งจริง
+    saveFarmHome(t.lat, t.lng);
 
     if(window._userMarker){ layerWork.removeLayer(window._userMarker); }
     window._userMarker = L.marker([t.lat, t.lng], {icon:ICONS.user})
@@ -576,8 +585,7 @@ function loc_calibrate(){
   map.on('click', once);
 }
 function loc_clearCal(){
-  clearOffset();
-  clearFarmHome();    // ล้างตำแหน่งฟาร์มด้วย
+  clearOffset(); clearFarmHome();
   alert('ล้างออฟเซ็ตและตำแหน่งฟาร์มแล้ว ✅');
   loc_readGPS();
 }
@@ -604,7 +612,7 @@ function loc_deleteWork(lat,lng){
 function saveWorkMarkers(){
   const arr = [];
   layerWork.eachLayer(layer=>{
-    if(layer===window._userMarker || layer===accCircle || layer===window._farmMarker) return; // กันเซฟหมุดฟาร์ม
+    if(layer===window._userMarker || layer===accCircle || layer===window._farmMarker) return;
     const p = layer.getLatLng?.(); if(!p) return;
     const html = layer.options.icon?.options?.html || '';
     const color = html.includes('#ff4d4f') ? 'red' : html.includes('#ffd33d') ? 'yellow' : 'green';
@@ -674,6 +682,10 @@ window.diseaseToMap = diseaseToMap;
       document.getElementById('locInput').value = localStorage.getItem('sf_loc')||'';
       renderTasks();
       demoFillHome();
+
+      renderCareVideos();        // วางการ์ด
+      hydrateCareTitles();       // ดึงชื่อคลิปจริง
+
       if(document.getElementById('location').classList.contains('active')) initMap();
     })();
 
@@ -702,6 +714,94 @@ window.diseaseToMap = diseaseToMap;
         prices.map(p=>`• ${p.name} ~ <b>${p.price}</b> บาท/${p.unit}`).join('<br>')+
         `<div class="help">แหล่งราคา: ตลาดกลาง (ตัวอย่าง)</div>`;
     }
+
+    // ======================= CARE VIDEOS =======================
+    // ใช้ลิงก์ที่มึงให้ แล้วดึง title จริงผ่าน oEmbed (ไม่ต้อง API key)
+    const CARE_LINKS = [
+      'https://youtu.be/bxVVNDbcFlo?si=Rdp8HBUN1Ig1TOZ3',
+      'https://youtu.be/nkSnxLHHO0M?si=GXQ8dv8ZeUd08ARV',
+      'https://youtu.be/par799X6o1s?si=6RgPCb0ZpOYvEXsf',
+      'https://youtu.be/C0ATvh2dtEE?si=Ham65qz8Kilx7Uqu',
+      'https://youtu.be/S4QyMAaYqds?si=rN1htKIKMjK8dVjM',
+      'https://youtu.be/8KqS4UtSho8?si=pyDeZOIxrBVcS8H5'
+    ];
+
+    const YT_ID_RE = /(?:youtu\.be\/|v=)([A-Za-z0-9_-]{6,})(?:[?&].*)?$/;
+
+    function ytIdFrom(url){
+      const m = url.match(YT_ID_RE);
+      return m ? m[1] : url; // เผื่อส่งมาเป็น id ล้วน
+    }
+
+    function renderCareVideos(){
+      const grid = document.getElementById('careGrid');
+      grid.innerHTML = CARE_LINKS.map((link,i)=>{
+        const id = ytIdFrom(link);
+        return `
+        <div class="video-card" data-id="${id}" role="button" tabindex="0" aria-label="เล่นวิดีโอ ${i+1}">
+          <div class="video-thumb">
+            <img loading="lazy" src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="thumbnail ${i+1}">
+            <div class="play"></div>
+          </div>
+          <div class="video-title" id="vt-${id}">กำลังโหลดชื่อคลิป…</div>
+        </div>`;
+      }).join('');
+      // event
+      grid.querySelectorAll('.video-card').forEach(card=>{
+        card.addEventListener('click', ()=> openVideo(card.dataset.id));
+        card.addEventListener('keypress', (e)=>{ if(e.key==='Enter' || e.key===' ') openVideo(card.dataset.id); });
+      });
+      // close modal by backdrop
+      document.getElementById('videoModal').addEventListener('click', (e)=>{ if(e.target.id==='videoModal') closeVideo(); });
+      window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeVideo(); });
+    }
+
+    async function hydrateCareTitles(){
+      const jobs = CARE_LINKS.map(async (link)=>{
+        const id = ytIdFrom(link);
+        const cacheKey = 'sf_yttitle_'+id;
+        const cached = localStorage.getItem(cacheKey);
+        if(cached){
+          setTitle(id, cached); return;
+        }
+        try{
+          const oembed = `https://www.youtube.com/oembed?url=${encodeURIComponent('https://www.youtube.com/watch?v='+id)}&format=json`;
+          const r = await fetch(oembed, {headers:{'Accept':'application/json'}});
+          if(!r.ok) throw new Error('oembed fail '+r.status);
+          const j = await r.json();
+          const title = j.title || ('คลิป '+id);
+          localStorage.setItem(cacheKey, title);
+          setTitle(id, title);
+        }catch(e){
+          // fallback
+          setTitle(id, 'คลิป '+id);
+          console.warn('Fetch title failed for', id, e);
+        }
+      });
+      await Promise.allSettled(jobs);
+    }
+
+    function setTitle(id, title){
+      const el = document.getElementById('vt-'+id);
+      if(el) el.textContent = title;
+    }
+
+    // modal player
+    function openVideo(id){
+      const modal = document.getElementById('videoModal');
+      const frame = document.getElementById('videoFrame');
+      frame.src = `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden','false');
+    }
+    function closeVideo(){
+      const modal = document.getElementById('videoModal');
+      const frame = document.getElementById('videoFrame');
+      frame.src = '';
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden','true');
+    }
+    // ===================== /CARE VIDEOS =======================
 
     // -------- Disease demo --------
     document.getElementById('diseaseFile')?.addEventListener('change', (e)=>{
@@ -746,9 +846,6 @@ window.diseaseToMap = diseaseToMap;
       URL.revokeObjectURL(url);
     }
 
-    // -------- หมุดโรคจากหน้า Disease --------
-    window.diseaseToMap = diseaseToMap;
-
     // -------- Account helpers --------
     function saveAccount(){
       localStorage.setItem('sf_farm', document.getElementById('accFarm').value.trim());
@@ -757,7 +854,7 @@ window.diseaseToMap = diseaseToMap;
       setTimeout(()=>document.getElementById('accMsg').textContent='', 2000);
     }
 
-    /* ======= แชท: ต่อ Gemini โดยตรง (ระวังคีย์โผล่) ======= */
+    /* ======= แชท: ต่อ Gemini โดยตรง (คีย์ที่ให้) ======= */
     const GEMINI_API_KEY = 'AIzaSyBCbwvS7PGXQZYxn2xLJ-VJMRMSaNItRFE';
     const GEMINI_MODEL  = 'gemini-1.5-flash';
     const GEMINI_URL    = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
