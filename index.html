@@ -9,6 +9,9 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+  <!-- Chart.js สำหรับหน้ารายงาน -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
   <style>
     :root{
       --bg:#e8f5e9; --layer:#c8e6c9; --ink:#1b5e20; --ink-2:#33691e; --accent:#81c784;
@@ -88,6 +91,82 @@
 
     @media (max-width:900px){ .menu-grid{ grid-template-columns:repeat(2,1fr) } }
     @media (max-width:560px){ .menu-grid{ grid-template-columns:1fr } .row,.row-3{ grid-template-columns:1fr } }
+
+    /* ==== Video gallery ==== */
+    .video-grid{display:grid;gap:14px;grid-template-columns:repeat(3,1fr)}
+    @media (max-width:900px){.video-grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:560px){.video-grid{grid-template-columns:1fr}}
+
+    .video-card{
+      background:var(--layer); border-radius:16px; box-shadow:var(--shadow);
+      overflow:hidden; transition:transform .2s ease, filter .2s ease; cursor:pointer
+    }
+    .video-card:hover{transform:translateY(-2px); filter:brightness(1.03)}
+    .thumb-wrap{position:relative; width:100%; padding-top:56.25%; background:#000}
+    .thumb-wrap img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+    .video-info{padding:10px 12px}
+    .video-title{font-weight:700; font-size:14px; color:var(--ink)}
+    .video-meta{font-size:12px; color:var(--ink-2); margin-top:4px}
+
+    /* Modal (รวมใช้ทั้ง video/guide/order) */
+    .modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:9999}
+    .modal.show{display:flex}
+    .modal-backdrop{position:absolute; inset:0; background:rgba(0,0,0,.65)}
+    .modal-content{
+      position:relative; width:min(960px,92vw); background:var(--card); border-radius:14px;
+      box-shadow:var(--shadow); padding:12px
+    }
+    .modal-close{
+      position:absolute; top:6px; right:8px; border:none; background:transparent;
+      font-size:22px; cursor:pointer; color:var(--ink)
+    }
+    .ratio{position:relative; width:100%; padding-top:56.25%; background:#000; border-radius:10px; overflow:hidden}
+    .ratio iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
+    .modal-title{margin:8px 4px 0; font-size:14px; color:var(--ink-2)}
+
+    /* ==== WORK sensors ==== */
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    @media(max-width:700px){.grid-3,.grid-2{grid-template-columns:1fr}}
+    .sensor{background:#fff;border-radius:14px;padding:12px;box-shadow:var(--shadow)}
+    [data-theme="dark"] .sensor{background:#122118;color:#e8ffe9;border:1px solid #203a26}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px}
+    .ok{background:#c8e6c9;color:#1b5e20}
+    .warn{background:#fff3cd;color:#7c5a00}
+    .err{background:#ffebee;color:#b71c1c}
+    .led{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;margin-right:6px}
+
+    /* ==== WATER (3 ถัง) ==== */
+    .tank-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    @media(max-width:900px){.tank-grid{grid-template-columns:1fr}}
+    .tank{background:#fff;border-radius:14px;padding:12px;box-shadow:var(--shadow)}
+    [data-theme="dark"] .tank{background:#122118;color:#e8ffe9;border:1px solid #203a26}
+    .bar{height:10px;background:#e0e0e0;border-radius:999px;overflow:hidden}
+    .bar>div{height:100%;width:0%}
+    .tip{font-size:12px;color:#555}
+    [data-theme="dark"] .tip{color:#b7e4bf}
+
+    /* ==== Fertilizer shop ==== */
+    .shop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    @media(max-width:900px){.shop-grid{grid-template-columns:1fr}}
+    .product{background:#fff;border-radius:14px;padding:12px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+    [data-theme="dark"] .product{background:#122118;color:#e8ffe9;border:1px solid #203a26}
+    .p-img{width:100%;aspect-ratio:4/3;border-radius:10px;object-fit:cover;background:linear-gradient(135deg,#9be7a0,#c8e6c9)}
+    .p-title{font-weight:700;margin:10px 0 4px}
+    .p-desc{font-size:13px;color:var(--ink-2)}
+    .p-actions{margin-top:auto;display:flex;gap:8px;align-items:center}
+
+    /* === Account page extras === */
+    .profile-card{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+    .avatar-wrap{width:110px;height:110px;border-radius:50%;overflow:hidden;box-shadow:var(--shadow);background:#fff;display:flex;align-items:center;justify-content:center}
+    .avatar-wrap img{width:100%;height:100%;object-fit:cover}
+    .avatar-actions{display:flex;flex-direction:column;gap:8px}
+    .small{font-size:12px;color:var(--ink-2)}
+    .guide-list{margin:8px 0 0 18px}
+    .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+    .stat-box{background:#fff;color:#0f0f0f;border-radius:12px;padding:12px;box-shadow:var(--shadow)}
+    [data-theme="dark"] .stat-box{background:#122118;color:#e8ffe9;border:1px solid #203a26}
+    .stat-box b{font-size:18px;display:block;margin-top:4px}
   </style>
 </head>
 <body>
@@ -116,28 +195,28 @@
       <div class="row">
         <div class="card">
           <h3 style="margin:0 0 6px">🌤️ อากาศ</h3>
-          <div id="weatherBox" class="help">กด “อัปเดตข้อมูล” เพื่อดึง (เดโม่)</div>
+          <div id="weatherBox" class="help">กด “อัปเดตข้อมูล” เพื่อดึง </div>
         </div>
         <div class="card">
           <h3 style="margin:0 0 6px">🍌 ราคาผลไม้</h3>
-          <div id="priceBox" class="help">กล้วย/มะม่วง/ทุเรียน (เดโม่)</div>
+          <div id="priceBox" class="help">กล้วย/มะม่วง/ทุเรียน</div>
         </div>
       </div>
     </div>
 
     <div class="menu-grid" style="margin-top:14px">
-      <div class="menu-item" onclick="showPage('disease')"><span class="emj">🔍</span><span class="lbl">ตรวจโรค</span></div>
-      <div class="menu-item" onclick="showPage('care')"><span class="emj">🌱</span><span class="lbl">ดูแล</span></div>
-      <div class="menu-item" onclick="showPage('work')"><span class="emj">⚙️</span><span class="lbl">การทำงาน</span></div>
-      <div class="menu-item" onclick="showPage('water')"><span class="emj">💧</span><span class="lbl">ปริมาณน้ำปุ๋ย</span></div>
-      <div class="menu-item" onclick="showPage('fertilizer')"><span class="emj">🌿</span><span class="lbl">แนะนำปุ๋ย</span></div>
-      <div class="menu-item" onclick="showPage('report')"><span class="emj">📊</span><span class="lbl">รายงาน</span></div>
+      <div class="menu-item" data-nav="disease"><span class="emj">🔍</span><span class="lbl">ตรวจโรค</span></div>
+      <div class="menu-item" data-nav="care"><span class="emj">🌱</span><span class="lbl">ดูแล</span></div>
+      <div class="menu-item" data-nav="work"><span class="emj">⚙️</span><span class="lbl">การทำงาน</span></div>
+      <div class="menu-item" data-nav="water"><span class="emj">💧</span><span class="lbl">ปริมาณน้ำปุ๋ย</span></div>
+      <div class="menu-item" data-nav="fertilizer"><span class="emj">🌿</span><span class="lbl">แนะนำปุ๋ย</span></div>
+      <div class="menu-item" data-nav="report"><span class="emj">📊</span><span class="lbl">รายงาน</span></div>
     </div>
   </section>
 
   <!-- DISEASE -->
   <section id="disease" class="page">
-    <div class="header"><h1 class="title">🔍 ตรวจโรคพืช</h1><p class="sub">อัปโหลดรูปใบหรือผลผลิต (เดโม่ออฟไลน์)</p></div>
+    <div class="header"><h1 class="title">🔍 ตรวจโรคพืช</h1><p class="sub">อัปโหลดรูปใบหรือผลผลิต</p></div>
     <div class="card">
       <div class="row">
         <div>
@@ -151,114 +230,114 @@
         </div>
       </div>
       <div class="flex" style="margin-top:10px">
-        <button id="btnDiseaseDemo">วิเคราะห์ (เดโม่)</button>
-        <button id="btnMarkDisease" title="ทดสอบการปักหมุดโรค">ปักหมุดโรค (เดโม่)</button>
+        <button id="btnDiseaseDemo">วิเคราะห์ </button>
+        <button id="btnMarkDisease" title="ปักหมุดโรค">ปักหมุดโรค </button>
         <span class="help">TODO: เปลี่ยนเป็นโมเดล Teachable Machine ทีหลัง</span>
       </div>
       <div class="card" style="margin-top:10px">
-        <h3 style="margin:0 0 8px">Top-3 (เดโม่)</h3>
+        <h3 style="margin:0 0 8px">Top-3 </h3>
         <div id="top3Box" class="help">—</div>
       </div>
     </div>
   </section>
 
-  <!-- CARE -->
+  <!-- CARE (วิดีโอ) -->
   <section id="care" class="page">
-    <div class="header"><h1 class="title">🌱 การดูแลพืช</h1></div>
+    <div class="header">
+      <h1 class="title">🌱 การดูแลพืช (วิดีโอ)</h1>
+      <p class="sub">กดคลิปเพื่อเล่นได้เลย · โหลดชื่อคลิปอัตโนมัติ</p>
+    </div>
     <div class="card">
-      <h2>ทิปส์ช่วงฝน</h2>
-      <ul>
-        <li>คลุมดินลดการกระเด็นของเชื้อรา</li>
-        <li>ตรวจน้ำขังรอบโคนต้น</li>
-        <li>พ่นชีวภัณฑ์สลับสูตรทุก 7–10 วัน</li>
-      </ul>
+      <div id="videoGrid" class="video-grid"></div>
     </div>
   </section>
 
-  <!-- WORK -->
+  <!-- WORK (สถานะอุปกรณ์จำลอง) -->
   <section id="work" class="page">
-    <div class="header"><h1 class="title">⚙️ การทำงาน</h1><p class="sub">โน้ตขั้นตอนงานในฟาร์ม</p></div>
+    <div class="header"><h1 class="title">⚙️ การทำงาน</h1><p class="sub">สถานะจำลอง — อัลตราโซนิก x3 · เซนเซอร์ความชื้น · ตัวรับน้ำฝน</p></div>
     <div class="card">
-      <div class="row">
-        <div><label>งาน</label><input id="taskName" placeholder="เช่น พ่นเชื้อรา"></div>
-        <div><label>วันที่</label><input id="taskDate" type="date"></div>
+      <div class="flex">
+        <button id="btnSimStart">เริ่มจำลอง</button>
+        <button id="btnSimStop">หยุด</button>
+        <span class="help">อัปเดตทุก ~3 วินาที</span>
       </div>
-      <div class="row" style="margin-top:8px">
-        <div><label>พื้นที่</label><input id="taskArea" placeholder="ไร่/แปลงที่..."></div>
-        <div><label>หมายเหตุ</label><input id="taskNote" placeholder="เช่น ใช้บีที 50 กรัม"></div>
-      </div>
-      <div class="flex" style="margin-top:10px">
-        <button onclick="addTask()">บันทึกงาน</button>
-        <button class="right" onclick="exportCSV()">Export CSV</button>
-      </div>
-    </div>
-    <div class="card">
-      <h2>รายการงาน</h2>
-      <div class="help">เก็บในเบราว์เซอร์เครื่องนี้</div>
-      <table id="taskTable">
-        <thead><tr><th>วันที่</th><th>งาน</th><th>พื้นที่</th><th>หมายเหตุ</th><th></th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- WATER -->
-  <section id="water" class="page">
-    <div class="header"><h1 class="title">💧 คำนวณปริมาณน้ำปุ๋ย</h1></div>
-    <div class="card">
-      <div class="row-3">
-        <div><label>พื้นที่ (ไร่)</label><input id="wArea" type="number" step="0.01" placeholder="เช่น 1.5"></div>
-        <div><label>อัตราน้ำ (ลิตร/ไร่)</label><input id="wRate" type="number" step="1" placeholder="เช่น 800"></div>
-        <div><label>% เข้มข้นปุ๋ย (w/v)</label><input id="wPct" type="number" step="0.1" placeholder="เช่น 0.5"></div>
-      </div>
-      <div class="flex" style="margin-top:10px">
-        <button onclick="calcWater()">คำนวณ</button>
-        <span id="wOut" class="help"></span>
-      </div>
-    </div>
-  </section>
-
-  <!-- FERTILIZER -->
-  <section id="fertilizer" class="page">
-    <div class="header"><h1 class="title">🌿 แนะนำปุ๋ย</h1><p class="sub">เลือกพืชเพื่อดูสูตรแนะนำ</p></div>
-    <div class="card">
-      <div class="row">
-        <div>
-          <label>พืช</label>
-          <select id="fzPlant">
-            <option value="banana">กล้วย</option>
-            <option value="mango">มะม่วง</option>
-            <option value="durian">ทุเรียน</option>
-            <option value="rice">ข้าว</option>
-            <option value="vegetable">ผักใบ</option>
-          </select>
+      <div class="grid-3" style="margin-top:10px">
+        <div class="sensor">
+          <div><span class="badge ok"><span class="led" id="led_us1"></span>อัลตราโซนิก #1</span></div>
+          <div id="us1_txt" class="help" style="margin-top:8px">—</div>
         </div>
-        <div style="align-self:end"><button onclick="showFormula()">ดูสูตร</button></div>
+        <div class="sensor">
+          <div><span class="badge ok"><span class="led" id="led_us2"></span>อัลตราโซนิก #2</span></div>
+          <div id="us2_txt" class="help" style="margin-top:8px">—</div>
+        </div>
+        <div class="sensor">
+          <div><span class="badge ok"><span class="led" id="led_us3"></span>อัลตราโซนิก #3</span></div>
+          <div id="us3_txt" class="help" style="margin-top:8px">—</div>
+        </div>
       </div>
-      <div id="fzBox" class="card" style="margin-top:10px">
-        <div class="help">จะมีสูตรแบ่งช่วงอายุพืช/ระยะผลผลิต</div>
+      <div class="grid-2" style="margin-top:10px">
+        <div class="sensor">
+          <div><span class="badge ok"><span class="led" id="led_hum"></span>เซนเซอร์ความชื้น</span></div>
+          <div id="hum_txt" class="help" style="margin-top:8px">—</div>
+        </div>
+        <div class="sensor">
+          <div><span class="badge ok"><span class="led" id="led_rain"></span>ตัวรับน้ำฝน</span></div>
+          <div id="rain_txt" class="help" style="margin-top:8px">—</div>
+        </div>
       </div>
+    </div>
+  </section>
+
+  <!-- WATER (3 ถัง / หน่วย cm³) -->
+  <section id="water" class="page">
+    <div class="header"><h1 class="title">💧 ปริมาณน้ำปุ๋ย (3 ถัง)</h1><p class="sub">หน่วย: ลูกบาศก์เซนติเมตร (cm³) · ถังละ 20 ลิตร (20,000 cm³) · แนะนำเติมเมื่อ &lt; 5 ลิตร</p></div>
+    <div class="card">
+      <div class="flex">
+        <button id="btnWaterRand">สถานะ</button>
+        <span class="help">* ค่าจำลองเพื่อทดสอบ UI</span>
+      </div>
+      <div id="tankGrid" class="tank-grid" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- FERTILIZER (ร้านปุ๋ย + สั่งซื้อ) -->
+  <section id="fertilizer" class="page">
+    <div class="header"><h1 class="title">🌿 ร้านปุ๋ย</h1><p class="sub">เพิ่มเข้าตะกร้า/สั่งซื้อ</p></div>
+    <div class="card">
+      <div id="shopGrid" class="shop-grid"></div>
     </div>
   </section>
 
   <!-- REPORT -->
   <section id="report" class="page">
-    <div class="header"><h1 class="title">📊 รายงาน</h1><p class="sub">สรุปงาน + กราฟ (เตรียมช่องไว้)</p></div>
+    <div class="header"><h1 class="title">📊 รายงาน</h1><p class="sub">สรุปการใช้ปุ๋ย & แนวโน้มราคาผลไม้ (เดือนนี้)</p></div>
     <div class="card">
-      <h2>สรุปจำนวนงานต่อเดือน (เดโม่)</h2>
-      <div id="reportBox" class="help">TODO: วาดกราฟด้วย canvas/Chart.js ภายหลัง</div>
+      <div class="flex">
+        <button id="btnReportRefresh">ข้อมูลรายงาน</button>
+        <span class="help">กราฟ</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:10px">
+        <div class="card">
+          <h3 style="margin:0 0 8px">ปุ๋ยที่ใช้ (กก.) — จำกัดไม่เกิน 10 กก.</h3>
+          <canvas id="fertChart" height="200"></canvas>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 8px">ราคาผลไม้ (บาท/กก.)</h3>
+          <canvas id="priceChart" height="200"></canvas>
+        </div>
+      </div>
     </div>
   </section>
 
   <!-- CHAT -->
   <section id="chat" class="page">
-    <div class="header"><h1 class="title">🤖 แชท AI</h1><p class="sub">ที่นี่วาง UI แชทได้</p></div>
+    <div class="header"><h1 class="title">🤖 แชท AI</h1><p class="sub"></p></div>
     <div class="card">
       <div class="row">
         <input id="chatInput" placeholder="พิมพ์ถามเรื่องฟาร์ม..." />
-        <button onclick="demoChat()">ส่ง</button>
+        <button id="btnChatSend">ส่ง</button>
       </div>
-      <div id="chatBox" class="card" style="margin-top:10px; min-height:80px"></div>
+      <div id="chatBox" class="card" style="margin-top:10px; min-height:100px"></div>
     </div>
   </section>
 
@@ -271,17 +350,17 @@
 
     <div class="card">
       <div class="flex">
-        <button onclick="loc_readGPS()">อ่านพิกัด</button>
-        <button onclick="loc_setClickColor('green')">หมุดเขียว: รดน้ำเสร็จแล้ว</button>
-        <button onclick="loc_setClickColor('yellow')">หมุดเหลือง: กำลังรด</button>
-        <button onclick="loc_setClickColor('red')">หมุดแดง: ยังไม่รด</button>
-        <button class="right" onclick="loc_clear()">ล้างหมุดงานทั้งหมด</button>
+        <button id="btnReadGPS">อ่านพิกัด</button>
+        <button id="btnPinGreen">หมุดเขียว: รดน้ำเสร็จแล้ว</button>
+        <button id="btnPinYellow">หมุดเหลือง: กำลังรด</button>
+        <button id="btnPinRed">หมุดแดง: ยังไม่รด</button>
+        <button id="btnClearPins" class="right">ล้างหมุดงานทั้งหมด</button>
       </div>
 
       <div class="flex" style="margin-top:8px">
-        <button onclick="loc_calibrate()">ปรับเทียบพิกัด</button>
-        <button onclick="loc_clearCal()">ล้างออฟเซ็ต</button>
-        <button onclick="loc_goFarm()">ไปที่ฟาร์ม 🏡</button>
+        <button id="btnCalibrate">ปรับเทียบพิกัด</button>
+        <button id="btnClearCal">ล้างออฟเซ็ต</button>
+        <button id="btnGoFarm">ไปที่ฟาร์ม 🏡</button>
       </div>
 
       <div id="farmMap" style="margin-top:10px"></div>
@@ -293,27 +372,137 @@
 
   <!-- ACCOUNT -->
   <section id="account" class="page">
-    <div class="header"><h1 class="title">👤 บัญชีผู้ใช้</h1></div>
+    <div class="header"><h1 class="title">👤 บัญชีผู้ใช้</h1><p class="sub">โปรไฟล์ · คู่มือ · สรุปการใช้ปุ๋ย/น้ำ (สะสมปีนี้)</p></div>
+
     <div class="card">
-      <div class="row">
-        <div><label>ชื่อฟาร์ม</label><input id="accFarm" placeholder="เช่น สวนซัน"></div>
-        <div><label>ผู้ดูแล</label><input id="accOwner" placeholder="เช่น ซัน"></div>
+      <h2>โปรไฟล์</h2>
+      <div class="profile-card">
+        <div class="avatar-wrap">
+          <img id="accAvatarPreview" alt="avatar" src="" />
+        </div>
+        <div class="avatar-actions" style="min-width:260px">
+          <label>อัปโหลดรูปโปรไฟล์</label>
+          <input type="file" id="accAvatarFile" accept="image/*" />
+          <div class="small">* รูปจะถูกเก็บไว้ในเครื่องนี้ (localStorage)</div>
+        </div>
+        <div style="flex:1;min-width:240px">
+          <div class="row" style="grid-template-columns:1fr">
+            <div><label>ชื่อแสดงในแอป</label><input id="accOwner" placeholder="เช่น ซัน"></div>
+          </div>
+          <div class="row" style="margin-top:8px;grid-template-columns:1fr">
+            <div><label>ชื่อฟาร์ม</label><input id="accFarm" placeholder="เช่น สวนซัน"></div>
+          </div>
+          <div class="flex" style="margin-top:10px">
+            <button id="btnSaveAccount">บันทึกโปรไฟล์</button>
+            <button class="right" id="btnLogout" title="ล้างข้อมูลบัญชีนี้ออกจากเครื่อง">ออกจากระบบ</button>
+          </div>
+          <div id="accMsg" class="small" style="margin-top:6px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>คู่มือการใช้งาน</h2>
+      <div class="flex">
+        <button id="btnOpenGuide">เปิดคู่มือ</button>
+        <span class="small">แนะนำวิธีใช้คร่าวๆ สำหรับทุกหน้า</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>สถิติสะสมปี <span id="accYear"></span></h2>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <label>ปุ๋ยที่ใช้สะสม (กก.)</label>
+          <b id="statFertilizer">0</b>
+        </div>
+        <div class="stat-box">
+          <label>น้ำที่ใช้สะสม (ลิตร)</label>
+          <b id="statWater">0</b>
+        </div>
       </div>
       <div class="flex" style="margin-top:10px">
-        <button onclick="saveAccount()">บันทึก</button>
-        <span id="accMsg" class="help"></span>
+        <button id="btnAdjustStats">ยอดรวม</button>
+        <span class="small">* ตัวเลขถูกเก็บถาวรในเครื่องจนกว่าจะกด “ออกจากระบบ”</span>
       </div>
     </div>
   </section>
 
   <nav class="bottom-nav">
-    <button class="tab active" data-tab="home" onclick="showPage('home')"><span class="emj">🏠</span>หน้าหลัก</button>
-    <button class="tab" data-tab="chat" onclick="showPage('chat')"><span class="emj">🤖</span>แชท AI</button>
-    <button class="tab" data-tab="location" onclick="showPage('location')"><span class="emj">📍</span>ตำแหน่งฟาร์ม</button>
-    <button class="tab" data-tab="account" onclick="showPage('account')"><span class="emj">👤</span>บัญชีผู้ใช้</button>
+    <button class="tab active" data-tab-target="home"><span class="emj">🏠</span>หน้าหลัก</button>
+    <button class="tab" data-tab-target="chat"><span class="emj">🤖</span>แชท AI</button>
+    <button class="tab" data-tab-target="location"><span class="emj">📍</span>ตำแหน่งฟาร์ม</button>
+    <button class="tab" data-tab-target="account"><span class="emj">👤</span>บัญชีผู้ใช้</button>
   </nav>
 
+  <!-- Video Modal -->
+  <div id="videoModal" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close="video"></div>
+    <div class="modal-content">
+      <button class="modal-close" aria-label="ปิด" data-close="video">×</button>
+      <div class="ratio">
+        <iframe id="videoFrame"
+          src=""
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+          referrerpolicy="origin-when-cross-origin"></iframe>
+      </div>
+      <div id="videoModalTitle" class="modal-title"></div>
+    </div>
+  </div>
+
+  <!-- Order Modal -->
+  <div id="orderModal" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close="order"></div>
+    <div class="modal-content">
+      <button class="modal-close" aria-label="ปิด" data-close="order">×</button>
+      <h3 style="margin:0 0 8px">🧾 ใบสั่งซื้อ </h3>
+      <div id="orderSummary" class="help"></div>
+      <div class="flex" style="margin-top:10px">
+        <button id="btnConfirmOrder">ยืนยันสั่งซื้อ</button>
+        <button class="right" data-close="order">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GUIDE MODAL -->
+  <div id="guideModal" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close="guide"></div>
+    <div class="modal-content">
+      <button class="modal-close" aria-label="ปิด" data-close="guide">×</button>
+      <h3 style="margin:0 0 8px">📘 คู่มือใช้งานสั้นๆ</h3>
+      <ul class="guide-list">
+        <li><b>หน้าหลัก</b> กด “อัปเดตข้อมูล” เพื่อดูอากาศ/ราคา (ตัวอย่าง)</li>
+        <li><b>ดูแล</b> กริดวิดีโอ YouTube คลิกแล้วเล่นทันที</li>
+        <li><b>การทำงาน</b> แสดงสถานะอุปกรณ์จำลอง</li>
+        <li><b>ปริมาณน้ำปุ๋ย</b> แสดงถังน้ำ 3 ใบ </li>
+        <li><b>แนะนำปุ๋ย</b> เลือก/สั่งซื้อ </li>
+        <li><b>รายงาน</b> ดูกราฟภาพรวมรายเดือน</li>
+        <li><b>บัญชี</b> เซ็ตโปรไฟล์ + ดูสถิติสะสมของปีนี้</li>
+      </ul>
+    </div>
+  </div>
+
   <script>
+/* ===================== Utilities ===================== */
+function _closeAllModals(){
+  document.querySelectorAll('.modal').forEach(m=>{
+    m.classList.remove('show'); m.setAttribute('aria-hidden','true');
+    const iframe = m.querySelector('iframe'); if(iframe) iframe.src='';
+  });
+}
+window.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape') _closeAllModals();
+});
+document.addEventListener('click', (e)=>{
+  const tgt = e.target.closest('[data-close]');
+  if(tgt){
+    const which = tgt.getAttribute('data-close');
+    const el = document.getElementById(which+'Modal');
+    if(el){ el.classList.remove('show'); el.setAttribute('aria-hidden','true'); const ifr=el.querySelector('iframe'); if(ifr) ifr.src=''; }
+  }
+});
+
 /* ===================== MAP + GPS ===================== */
 let map, baseLayer, clickColor='green';
 const layerWork = L.layerGroup();
@@ -321,15 +510,14 @@ const layerDisease = L.layerGroup();
 
 const LS_WORK = 'sf_map_work_v1';
 const LS_DISEASE = 'sf_map_disease_v1';
-const LS_FARM_HOME = 'sf_farm_home_v1';      // key ตำแหน่งฟาร์มถาวร
+const LS_FARM_HOME = 'sf_farm_home_v1';
 
 let pendingDisease = null;
-let accCircle = null;        // วงความแม่นยำ
-let lastRawPos = null;       // พิกัดดิบก่อนออฟเซ็ต
-window._userMarker = null;   // หมุดฉัน (runtime)
-window._farmMarker = null;   // หมุดฟาร์ม (persistent)
+let accCircle = null;
+let lastRawPos = null;
+window._userMarker = null;
+window._farmMarker = null;
 
-// ---- icons ----
 function colorIcon(color){
   const html = `<div style="position:relative;width:20px;height:20px;background:${color};border-radius:50%;
     border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,.4);"></div>`;
@@ -359,7 +547,6 @@ const ICONS = {
   farm: farmIcon()
 };
 
-// ---- cookie helpers (fallback เมื่อ localStorage ไม่ persist) ----
 function setCookie(name, value, days=365){
   const d = new Date(); d.setTime(d.getTime() + (days*24*60*60*1000));
   document.cookie = name + "=" + encodeURIComponent(value) + ";expires=" + d.toUTCString() + ";path=/;SameSite=Lax";
@@ -368,14 +555,8 @@ function getCookie(name){
   const m = document.cookie.match(new RegExp('(?:^|; )'+name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&')+'=([^;]*)'));
   return m ? decodeURIComponent(m[1]) : null;
 }
-
-// ---- farm home persist helpers ----
-function _readFarmHomeLS(){
-  try{ return JSON.parse(localStorage.getItem(LS_FARM_HOME)||'null'); }catch{ return null }
-}
-function _writeFarmHomeLS(obj){
-  try{ localStorage.setItem(LS_FARM_HOME, JSON.stringify(obj)); }catch{}
-}
+function _readFarmHomeLS(){ try{ return JSON.parse(localStorage.getItem(LS_FARM_HOME)||'null'); }catch{ return null } }
+function _writeFarmHomeLS(obj){ try{ localStorage.setItem(LS_FARM_HOME, JSON.stringify(obj)); }catch{} }
 function readFarmHome(){
   let fh = _readFarmHomeLS();
   if (fh && typeof fh.lat==='number' && typeof fh.lng==='number') return fh;
@@ -384,7 +565,7 @@ function readFarmHome(){
     try {
       fh = JSON.parse(c);
       if (fh && typeof fh.lat==='number' && typeof fh.lng==='number'){
-        _writeFarmHomeLS(fh);  // sync กลับเข้า LS
+        _writeFarmHomeLS(fh);
         return fh;
       }
     }catch{}
@@ -394,12 +575,12 @@ function readFarmHome(){
 function saveFarmHome(lat,lng){
   const obj = {lat, lng};
   _writeFarmHomeLS(obj);
-  setCookie(LS_FARM_HOME, JSON.stringify(obj)); // สำรองลงคุกกี้ด้วย
+  setCookie(LS_FARM_HOME, JSON.stringify(obj));
   renderFarmHome();
 }
 function clearFarmHome(){
   try{ localStorage.removeItem(LS_FARM_HOME); }catch{}
-  setCookie(LS_FARM_HOME, "", -1); // ลบคุกกี้
+  setCookie(LS_FARM_HOME, "", -1);
   if(window._farmMarker){ layerWork.removeLayer(window._farmMarker); window._farmMarker=null; }
 }
 function renderFarmHome(){
@@ -410,7 +591,6 @@ function renderFarmHome(){
     .bindPopup(`🏡 <b>ตำแหน่งฟาร์ม</b><br>${fh.lat.toFixed(6)}, ${fh.lng.toFixed(6)}<br><small>จะอยู่จนกว่าจะ “ล้างออฟเซ็ต”</small>`)
     .addTo(layerWork);
 }
-
 function initMap(){
   baseLayer = L.tileLayer(
     'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -422,8 +602,6 @@ function initMap(){
     zoom: fh ? 17 : 15,
     layers:[baseLayer, layerWork, layerDisease]
   });
-
-  // Legend
   const legend = L.control({position:'topright'});
   legend.onAdd = function(){
     const div = L.DomUtil.create('div','legend');
@@ -437,7 +615,6 @@ function initMap(){
     return div;
   }; legend.addTo(map);
 
-  // คลิกบนแผนที่
   map.on('click', (e)=>{
     if(pendingDisease){
       placeDiseaseMarker(e.latlng.lat, e.latlng.lng, pendingDisease.cls, pendingDisease.prob);
@@ -447,12 +624,10 @@ function initMap(){
     saveWorkMarkers();
   });
 
-  // render persisted things
   renderFarmHome();
   loadWorkMarkers();
   loadDiseaseMarkers();
 }
-
 function loc_setClickColor(c){
   clickColor = c;
   if(map){
@@ -462,18 +637,14 @@ function loc_setClickColor(c){
 function loc_clear(){
   const toRemove = [];
   layerWork.eachLayer(l=>{
-    if(l !== window._userMarker && l !== accCircle && l !== window._farmMarker) toRemove.push(l);   // กันลบหมุดฟาร์ม
+    if(l !== window._userMarker && l !== accCircle && l !== window._farmMarker) toRemove.push(l);
   });
   toRemove.forEach(l=>layerWork.removeLayer(l));
   localStorage.removeItem(LS_WORK);
 }
-
-// ออฟเซ็ตคาลิเบรต
 function readOffset(){ try{ return JSON.parse(localStorage.getItem('sf_gps_offset')||'null'); }catch{ return null } }
 function saveOffset(dlat, dlng){ localStorage.setItem('sf_gps_offset', JSON.stringify({dlat, dlng})); }
 function clearOffset(){ localStorage.removeItem('sf_gps_offset'); }
-
-// ขอพิกัดหลายชั้น
 function getAccuratePosition({desired=25, timeout=15000}={}){
   return new Promise((resolve, reject)=>{
     if(!navigator.geolocation) return reject(new Error('no geolocation'));
@@ -545,7 +716,6 @@ async function loc_readGPS(){
       .bindPopup(`ตำแหน่งฉัน<br>${lat.toFixed(6)}, ${lng.toFixed(6)}<br><small>accuracy ~ ${Math.round(lastRawPos.acc)} m • source: ${pos.source}</small>`)
       .addTo(layerWork).openPopup();
 
-    // ถ้ายังไม่เคยเซฟฟาร์ม ให้เซฟจากพิกัดหลังชดเชยออฟเซ็ตครั้งแรก
     if(!readFarmHome()) saveFarmHome(lat, lng);
 
     map.setView([lat, lng], lastRawPos.acc > 8000 ? 13 : lastRawPos.acc > 80 ? 16 : 17);
@@ -561,9 +731,8 @@ function loc_calibrate(){
   const once = (e)=>{
     map.off('click', once); map.closePopup(tip);
     const t = e.latlng;
-    // เซฟ offset + เซฟฟาร์มถาวร
     saveOffset(t.lat-lastRawPos.lat, t.lng-lastRawPos.lng);
-    saveFarmHome(t.lat, t.lng);   // ตั้งบ้านฟาร์มจากตำแหน่งจริง
+    saveFarmHome(t.lat, t.lng);
 
     if(window._userMarker){ layerWork.removeLayer(window._userMarker); }
     window._userMarker = L.marker([t.lat, t.lng], {icon:ICONS.user})
@@ -577,7 +746,7 @@ function loc_calibrate(){
 }
 function loc_clearCal(){
   clearOffset();
-  clearFarmHome();    // ล้างตำแหน่งฟาร์มด้วย
+  clearFarmHome();
   alert('ล้างออฟเซ็ตและตำแหน่งฟาร์มแล้ว ✅');
   loc_readGPS();
 }
@@ -588,23 +757,46 @@ function loc_goFarm(){
   map.setView([fh.lat, fh.lng], 18);
   if(window._farmMarker) window._farmMarker.openPopup();
 }
-
-// หมุดงาน/โรค + persist
 function placeWorkMarker(lat,lng,color='green'){
   const mk = L.marker([lat,lng], {icon:ICONS[color]}).addTo(layerWork);
-  mk.bindPopup(`งานรดน้ำ: <b>${color}</b><br>${lat.toFixed(6)}, ${lng.toFixed(6)}<br><button onclick="loc_deleteWork(${lat},${lng})">ลบ</button>`);
+  mk.bindPopup(
+    `<div>งานรดน้ำ: <b>${color}</b><br>${lat.toFixed(6)}, ${lng.toFixed(6)}</div>
+     <button class="sf-del-btn" data-action="delWork" data-lat="${lat}" data-lng="${lng}">ลบ</button>`
+  );
 }
-function loc_deleteWork(lat,lng){
-  layerWork.eachLayer(layer=>{
-    const p = layer.getLatLng?.(); if(p && p.lat.toFixed(6)==lat.toFixed(6) && p.lng.toFixed(6)==lng.toFixed(6)){
-      layerWork.removeLayer(layer); saveWorkMarkers();
-    }
-  });
+function placeDiseaseMarker(lat,lng,cls,prob){
+  const ts = new Date().toLocaleString();
+  const mk = L.marker([lat,lng], {icon:ICONS.disease}).addTo(layerDisease);
+  mk.bindPopup(
+    `<div>จุดพบโรค: <b>${cls}</b><br>ความมั่นใจ ${(prob*100).toFixed(1)}%<br>${lat.toFixed(6)}, ${lng.toFixed(6)}<br><i>${ts}</i></div>
+     <button class="sf-del-btn" data-action="delDisease" data-lat="${lat}" data-lng="${lng}">ลบ</button>`
+  ).openPopup();
+  saveDiseaseMarkers();
 }
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('button.sf-del-btn');
+  if(!btn) return;
+  const act = btn.getAttribute('data-action');
+  const lat = Number(btn.getAttribute('data-lat'));
+  const lng = Number(btn.getAttribute('data-lng'));
+  if(act==='delWork'){
+    layerWork.eachLayer(layer=>{
+      const p = layer.getLatLng?.(); if(p && p.lat.toFixed(6)==lat.toFixed(6) && p.lng.toFixed(6)==lng.toFixed(6)){
+        layerWork.removeLayer(layer); saveWorkMarkers();
+      }
+    });
+  }else if(act==='delDisease'){
+    layerDisease.eachLayer(layer=>{
+      const p = layer.getLatLng?.(); if(p && p.lat.toFixed(6)==lat.toFixed(6) && p.lng.toFixed(6)==lng.toFixed(6)){
+        layerDisease.removeLayer(layer); saveDiseaseMarkers();
+      }
+    });
+  }
+});
 function saveWorkMarkers(){
   const arr = [];
   layerWork.eachLayer(layer=>{
-    if(layer===window._userMarker || layer===accCircle || layer===window._farmMarker) return; // กันเซฟหมุดฟาร์ม
+    if(layer===window._userMarker || layer===accCircle || layer===window._farmMarker) return;
     const p = layer.getLatLng?.(); if(!p) return;
     const html = layer.options.icon?.options?.html || '';
     const color = html.includes('#ff4d4f') ? 'red' : html.includes('#ffd33d') ? 'yellow' : 'green';
@@ -614,20 +806,6 @@ function saveWorkMarkers(){
 }
 function loadWorkMarkers(){
   try{ (JSON.parse(localStorage.getItem(LS_WORK)||'[]')||[]).forEach(m=>placeWorkMarker(m.lat,m.lng,m.color)); }catch{}
-}
-function placeDiseaseMarker(lat,lng,cls,prob){
-  const mk = L.marker([lat,lng], {icon:ICONS.disease}).addTo(layerDisease);
-  const ts = new Date().toLocaleString();
-  mk.bindPopup(`จุดพบโรค: <b>${cls}</b><br>ความมั่นใจ ${(prob*100).toFixed(1)}%<br>${lat.toFixed(6)}, ${lng.toFixed(6)}<br><i>${ts}</i>
-    <br><button onclick="loc_deleteDisease(${lat},${lng})">ลบ</button>`).openPopup();
-  saveDiseaseMarkers();
-}
-function loc_deleteDisease(lat,lng){
-  layerDisease.eachLayer(layer=>{
-    const p = layer.getLatLng?.(); if(p && p.lat.toFixed(6)==lat.toFixed(6) && p.lng.toFixed(6)==lng.toFixed(6)){
-      layerDisease.removeLayer(layer); saveDiseaseMarkers();
-    }
-  });
 }
 function saveDiseaseMarkers(){
   const arr = [];
@@ -643,172 +821,463 @@ function loadDiseaseMarkers(){
   try{ (JSON.parse(localStorage.getItem(LS_DISEASE)||'[]')||[]).forEach(m=>placeDiseaseMarker(m.lat,m.lng,m.cls,m.prob)); }catch{}
 }
 async function diseaseToMap(cls, prob){
-  if(!map){ showPage('location'); initMap(); }
   try{
     const p = await getSmartPosition();
+    if(!map){ showPage('location'); initMap(); }
     placeDiseaseMarker(p.lat, p.lng, cls, prob);
     map.setView([p.lat,p.lng], 18);
   }catch{
     pendingDisease = {cls, prob};
     showPage('location');
+    if(!map) initMap();
     L.popup().setLatLng(map.getCenter()).setContent('คลิกบนแผนที่เพื่อวาง “จุดพบโรค”').openOn(map);
   }
 }
-window.diseaseToMap = diseaseToMap;
-/* ===================== /MAP + GPS ===================== */
 
-    // -------- Router --------
-    function showPage(id){
-      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-      document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===id));
-      localStorage.setItem('sf_last', id);
-      if(id==='location' && !map){ initMap(); }
-    }
+/* ===================== CARE (YouTube) ===================== */
+const CARE_VIDEOS = [
+  'https://youtu.be/bxVVNDbcFlo?si=Rdp8HBUN1Ig1TOZ3',
+  'https://youtu.be/nkSnxLHHO0M?si=GXQ8dv8ZeUd08ARV',
+  'https://youtu.be/par799X6o1s?si=6RgPCb0ZpOYvEXsf',
+  'https://youtu.be/C0ATvh2dtEE?si=Ham65qz8Kilx7Uqu',
+  'https://youtu.be/S4QyMAaYqds?si=rN1htKIKMjK8dVjM',
+  'https://youtu.be/8KqS4UtSho8?si=pyDeZOIxrBVcS8H5'
+];
+function ytIdFromUrl(url){
+  try{
+    const u = new URL(url);
+    if(u.hostname === 'youtu.be') return u.pathname.slice(1);
+    if(u.searchParams.get('v')) return u.searchParams.get('v');
+    const m1 = u.pathname.match(/\/shorts\/([^/?#]+)/); if(m1) return m1[1];
+    const m2 = u.pathname.match(/\/embed\/([^/?#]+)/);  if(m2) return m2[1];
+    return null;
+  }catch{ return null }
+}
+async function fetchYTTitle(url){
+  try{
+    const r = await fetch('https://www.youtube.com/oembed?format=json&url='+encodeURIComponent(url));
+    if(!r.ok) throw new Error('oEmbed fail');
+    const j = await r.json();
+    return j.title || '';
+  }catch{ return ''; }
+}
+function openVideo(id, title){
+  const el = document.getElementById('videoModal');
+  const iframe = document.getElementById('videoFrame');
+  const ttl = document.getElementById('videoModalTitle');
+  iframe.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`;
+  ttl.textContent = title || 'กำลังเล่น...';
+  el.classList.add('show'); el.setAttribute('aria-hidden','false');
+}
+function closeVideo(){
+  const el = document.getElementById('videoModal');
+  const iframe = document.getElementById('videoFrame');
+  el.classList.remove('show'); el.setAttribute('aria-hidden','true');
+  iframe.src = '';
+}
+function renderCareVideos(){
+  const grid = document.getElementById('videoGrid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  CARE_VIDEOS.forEach((url, i)=>{
+    const id = ytIdFromUrl(url);
+    if(!id) return;
+    const thumb = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+    const card = document.createElement('div');
+    card.className = 'video-card';
+    card.innerHTML = `
+      <div class="thumb-wrap"><img alt="thumbnail" loading="lazy" src="${thumb}"></div>
+      <div class="video-info">
+        <div class="video-title" id="vt-${id}">กำลังโหลดชื่อคลิป...</div>
+        <div class="video-meta">YouTube · คลิกเพื่อเล่น</div>
+      </div>`;
+    card.addEventListener('click', ()=> openVideo(id, document.getElementById('vt-'+id)?.textContent || ''));
+    grid.appendChild(card);
+    fetchYTTitle(url)
+      .then(t => { const el = document.getElementById('vt-'+id); if(el) el.textContent = t || `คลิป #${i+1}`; })
+      .catch(()=> { const el = document.getElementById('vt-'+id); if(el) el.textContent = `คลิป #${i+1}`; });
+  });
+}
 
-    (function init(){
-      const last = localStorage.getItem('sf_last'); if(last && document.getElementById(last)) showPage(last);
-      const theme = localStorage.getItem('sf_theme') || 'light'; document.documentElement.dataset.theme = theme;
-      const farm = localStorage.getItem('sf_farm')||''; const owner = localStorage.getItem('sf_owner')||'';
-      document.getElementById('accFarm').value = farm; document.getElementById('accOwner').value = owner;
-      document.getElementById('locInput').value = localStorage.getItem('sf_loc')||'';
-      renderTasks();
-      demoFillHome();
-      if(document.getElementById('location').classList.contains('active')) initMap();
-    })();
+/* ===================== WORK simulation ===================== */
+let simTimer=null;
+function rand(min,max){ return Math.random()*(max-min)+min; }
+function setLED(id,color){ const el=document.getElementById(id); if(el){ el.style.background=color; } }
+function simTick(){
+  for(let i=1;i<=3;i++){
+    const dist = rand(5, 200);
+    const ok = Math.random() > 0.05;
+    setLED(`led_us${i}`, ok ? '#39d353' : '#ff4d4f');
+    const tx = document.getElementById(`us${i}_txt`);
+    if(tx) tx.innerHTML = ok ? `ระยะวัดได้ ~ <b>${dist.toFixed(1)}</b> ซม.` : 'เซนเซอร์ขัดข้อง ⚠️';
+  }
+  const hum = rand(40, 95);
+  const humOk = hum>=50 && hum<=85;
+  setLED('led_hum', humOk ? '#39d353' : '#ffd33d');
+  const htxt = document.getElementById('hum_txt');
+  if(htxt) htxt.innerHTML = `ความชื้นสัมพัทธ์ ~ <b>${hum.toFixed(0)}%</b> ${humOk?'(ปกติ)':'(ควรตรวจระบบระบายอากาศ)'}`;
 
-    document.getElementById('btnTheme')?.addEventListener('click', ()=>{
-      const cur = document.documentElement.dataset.theme==='dark'?'light':'dark';
-      document.documentElement.dataset.theme = cur;
-      localStorage.setItem('sf_theme', cur);
-    });
+  const rain = Math.random()<0.2 ? rand(0.2, 12) : 0;
+  setLED('led_rain', rain>0 ? '#39d353' : '#9e9e9e');
+  const rtxt = document.getElementById('rain_txt');
+  if(rtxt) rtxt.innerHTML = rain>0 ? `ตรวจพบฝน ~ <b>${rain.toFixed(1)} mm/h</b>` : 'ไม่มีฝน';
+}
+function simStart(){ if(simTimer) return; simTimer = setInterval(simTick, 3000); simTick(); }
+function simStop(){ if(simTimer){ clearInterval(simTimer); simTimer=null; } }
 
-    document.getElementById('btnFetch')?.addEventListener('click', demoFillHome);
-    function demoFillHome(){
-      const loc = document.getElementById('locInput').value.trim() || 'กรุงเทพฯ · กลางเมือง';
-      localStorage.setItem('sf_loc', loc);
-      const w = { temp: 31, humid: 72, cond:'มีเมฆบางส่วน', rain: 35 };
-      document.getElementById('weatherBox').innerHTML =
-        `<div><b>${loc}</b></div>
-         <div>อุณหภูมิ ${w.temp}°C · ความชื้น ${w.humid}%</div>
-         <div>สภาพ: ${w.cond} · โอกาสฝน ${w.rain}%</div>
-         <div class="help">TODO: ต่อ API พยากรณ์จริง</div>`;
-      const prices = [
-        {name:'กล้วยหอม', unit:'กก.', price:27},
-        {name:'มะม่วงน้ำดอกไม้', unit:'กก.', price:45},
-        {name:'ทุเรียนหมอนทอง', unit:'กก.', price:155},
-      ];
-      document.getElementById('priceBox').innerHTML =
-        prices.map(p=>`• ${p.name} ~ <b>${p.price}</b> บาท/${p.unit}`).join('<br>')+
-        `<div class="help">แหล่งราคา: ตลาดกลาง (ตัวอย่าง)</div>`;
-    }
+/* ===================== WATER (3 tanks) ===================== */
+const LITER_TO_CM3 = 1000;
+const TANK_CAP_L = 20;
+const TANK_CAP_CM3 = TANK_CAP_L * LITER_TO_CM3;
+function renderTanks(vals){
+  const host = document.getElementById('tankGrid');
+  host.innerHTML='';
+  vals.forEach((cm3, idx)=>{
+    const lit = cm3 / 1000;
+    const pct = Math.max(0, Math.min(100, (cm3/TANK_CAP_CM3)*100));
+    const warn = lit < 5;
+    const div = document.createElement('div');
+    div.className='tank';
+    div.innerHTML = `
+      <div><b>ถังที่ ${idx+1}</b></div>
+      <div class="bar" style="margin:8px 0 6px"><div style="width:${pct.toFixed(0)}%; background:${warn?'#ff4d4f':'#81c784'}"></div></div>
+      <div>ปริมาตรคงเหลือ: <b>${Math.round(cm3).toLocaleString()}</b> cm³ (~${lit.toFixed(1)} ลิตร)</div>
+      <div class="tip">${warn?'⚠️ ควรเติมเพิ่ม (< 5 ลิตร)':'ปกติ'}</div>
+    `;
+    host.appendChild(div);
+  });
+}
+function randomTanks(){
+  const arr = [0,0,0].map(()=> Math.round(Math.random()*TANK_CAP_CM3));
+  renderTanks(arr);
+}
 
-    // -------- Disease demo --------
-    document.getElementById('diseaseFile')?.addEventListener('change', (e)=>{
-      const f = e.target.files[0]; if(!f) return;
-      const url = URL.createObjectURL(f);
-      document.getElementById('diseasePreview').innerHTML =
-        `<img src="${url}" style="max-width:100%; border-radius:12px">`;
-    });
-    document.getElementById('btnDiseaseDemo')?.addEventListener('click', ()=>{
-      const txt = "เดาแบบเดโม่: ใบมีจุดน้ำตาล อาจเป็นแอนแทรคโนส\nคำแนะนำ: เก็บเศษใบ เพิ่มการถ่ายเทอากาศ พ่นชีวภัณฑ์สลับสูตร";
-      document.getElementById('diseaseResult').value = txt;
-      document.getElementById('top3Box').innerHTML = "• A1 — 76.2%<br>• Healthy — 18.9%<br>• A2 — 4.9%";
-    });
+/* ===================== FERTILIZER SHOP ===================== */
+const FZ_IMAGE_URL = 'https://via.placeholder.com/800x600.png?text=%E0%B8%9B%E0%B8%B8%E0%B9%8B%E0%B8%A2';
+const PRODUCTS = [
+  { id:'f1', name:'ปุ๋ย 16-16-8',  desc:'เร่งโตใบ-ยอด สมดุล NPK', npk:'16-16-8',   price:380 },
+  { id:'f2', name:'ปุ๋ย ยูเรีย',   desc:'เสริมไนโตรเจน เร่งใบเขียว', npk:'46-0-0',   price:420 },
+  { id:'f3', name:'ปุ๋ย โพแทสเซียม', desc:'เร่งลงหัว/หวาน/เนื้อแน่น', npk:'0-0-60',  price:450 },
+];
+let lastOrder=null;
+function renderShop(){
+  const host = document.getElementById('shopGrid');
+  host.innerHTML='';
+  PRODUCTS.forEach(p=>{
+    const el = document.createElement('div');
+    el.className='product';
+    el.innerHTML = `
+      <img class="p-img" src="${FZ_IMAGE_URL}" alt="${p.name}" />
+      <div class="p-title">${p.name} · NPK ${p.npk}</div>
+      <div class="p-desc">${p.desc}</div>
+      <div class="p-actions">
+        <label class="small">จำนวน (ถุง)</label>
+        <input type="number" data-qty="${p.id}" min="1" value="1" style="width:90px">
+        <span class="right"><b>${p.price.toLocaleString()}</b> บาท</span>
+      </div>
+      <div class="flex" style="margin-top:8px">
+        <button data-order="${p.id}">สั่งซื้อ</button>
+      </div>
+    `;
+    host.appendChild(el);
+  });
+}
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-order]');
+  if(!btn) return;
+  const id = btn.getAttribute('data-order');
+  const p = PRODUCTS.find(x=>x.id===id); if(!p) return;
+  const qtyInput = document.querySelector(`input[data-qty="${id}"]`);
+  const q = Math.max(1, parseInt(qtyInput?.value||'1'));
+  const sum = q * p.price;
+  lastOrder = { product:p.name, npk:p.npk, unitPrice:p.price, qty:q, total:sum };
+  const box = document.getElementById('orderSummary');
+  box.innerHTML = `
+    สินค้า: <b>${p.name}</b> (NPK ${p.npk})<br>
+    จำนวน: <b>${q}</b> ถุง × ${p.price.toLocaleString()} บาท = <b>${sum.toLocaleString()}</b> บาท
+  `;
+  openOrder();
+});
+function openOrder(){
+  const m = document.getElementById('orderModal');
+  m.classList.add('show'); m.setAttribute('aria-hidden','false');
+}
+function closeOrder(){
+  const m = document.getElementById('orderModal');
+  m.classList.remove('show'); m.setAttribute('aria-hidden','true');
+}
+function confirmOrder(){
+  alert('สั่งซื้อเรียบร้อย ✅');
+  const yr = new Date().getFullYear().toString();
+  const s = getYearStats(yr);
+  const addKg = (lastOrder?.qty||0) * 1; // ถุงละ ~1 กก. 
+  setYearStats(yr, { fertKg: (Number(s.fertKg)||0) + addKg, waterL: Number(s.waterL)||0 });
+  updateAccountYearStatsUI();
+  closeOrder();
+}
 
-    // -------- Tasks --------
-    function readTasks(){ try{ return JSON.parse(localStorage.getItem('sf_tasks')||'[]'); }catch{ return [] } }
-    function writeTasks(list){ localStorage.setItem('sf_tasks', JSON.stringify(list)); }
-    function addTask(){
-      const name = document.getElementById('taskName').value.trim();
-      const date = document.getElementById('taskDate').value || new Date().toISOString().slice(0,10);
-      const area = document.getElementById('taskArea').value.trim();
-      const note = document.getElementById('taskNote').value.trim();
-      if(!name){ alert('กรอกชื่องานก่อน'); return }
-      const items = readTasks(); items.unshift({date,name,area,note}); writeTasks(items); renderTasks();
-      document.getElementById('taskName').value=''; document.getElementById('taskNote').value='';
-    }
-    function delTask(idx){ const items = readTasks(); items.splice(idx,1); writeTasks(items); renderTasks(); }
-    function renderTasks(){
-      const tb = document.querySelector('#taskTable tbody'); tb.innerHTML='';
-      readTasks().forEach((t,i)=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${t.date}</td><td>${t.name}</td><td>${t.area||'-'}</td><td>${t.note||'-'}</td>
-                        <td><button onclick="delTask(${i})">ลบ</button></td>`;
-        tb.appendChild(tr);
-      });
-    }
-    function exportCSV(){
-      const rows = [['วันที่','งาน','พื้นที่','หมายเหตุ'], ...readTasks().map(t=>[t.date,t.name,t.area||'',t.note||''])];
-      const csv = rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
-      const url = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-      const a = Object.assign(document.createElement('a'), {href:url, download:'smartfarm-tasks.csv'}); a.click();
-      URL.revokeObjectURL(url);
-    }
+/* ===================== REPORTS ===================== */
+let fertChart, priceChart;
+function makeMonthLabels(){
+  const days = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
+  return Array.from({length:days}, (_,i)=> (i+1).toString());
+}
+function cap10kg(arr){
+  const sum = arr.reduce((a,b)=>a+b,0);
+  if(sum<=10) return arr;
+  const k = 10/sum;
+  return arr.map(x=> +(x*k).toFixed(2));
+}
+function refreshReport(){
+  const d = makeMonthLabels();
+  let fert = d.map(()=> +(Math.random()*0.6).toFixed(2));
+  fert = cap10kg(fert);
+  const base = { banana:25, mango:40, durian:150 };
+  const series = (b)=> d.map((_,i)=> +(b + Math.sin(i/3)*2 + (Math.random()*2-1)*1.5).toFixed(1));
+  const banana = series(base.banana);
+  const mango  = series(base.mango);
+  const durian = series(base.durian);
 
-    // -------- หมุดโรคจากหน้า Disease --------
-    window.diseaseToMap = diseaseToMap;
+  const ctx1 = document.getElementById('fertChart');
+  if(fertChart) fertChart.destroy();
+  fertChart = new Chart(ctx1, {
+    type:'bar',
+    data:{ labels:d, datasets:[{ label:'กก./วัน', data:fert }]},
+    options:{ responsive:true, scales:{ y:{ beginAtZero:true } } }
+  });
+  const ctx2 = document.getElementById('priceChart');
+  if(priceChart) priceChart.destroy();
+  priceChart = new Chart(ctx2, {
+    type:'line',
+    data:{ labels:d, datasets:[
+      { label:'กล้วย', data:banana },
+      { label:'มะม่วง', data:mango },
+      { label:'ทุเรียน', data:durian },
+    ]},
+    options:{ responsive:true, interaction:{mode:'index', intersect:false}, scales:{ y:{ beginAtZero:false } } }
+  });
+}
 
-    // -------- Account helpers --------
-    function saveAccount(){
-      localStorage.setItem('sf_farm', document.getElementById('accFarm').value.trim());
-      localStorage.setItem('sf_owner', document.getElementById('accOwner').value.trim());
-      document.getElementById('accMsg').textContent = 'บันทึกแล้ว ✅';
-      setTimeout(()=>document.getElementById('accMsg').textContent='', 2000);
-    }
-
-    /* ======= แชท: ต่อ Gemini โดยตรง (ระวังคีย์โผล่) ======= */
-    const GEMINI_API_KEY = 'AIzaSyBCbwvS7PGXQZYxn2xLJ-VJMRMSaNItRFE';
-    const GEMINI_MODEL  = 'gemini-1.5-flash';
-    const GEMINI_URL    = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
-
-    function extractText(resp) {
-      try {
-        const c = resp.candidates?.[0]?.content?.parts?.[0]?.text;
-        return c || '(ไม่มีคำตอบ)';
-      } catch { return '(ไม่มีคำตอบ)'; }
-    }
-
-async function demoChat(){
+/* ===================== CHAT (offline) ===================== */
+function demoChat(){
   const box = document.getElementById('chatBox');
   const q = document.getElementById('chatInput').value.trim();
   if(!q) return;
-
-  const you = document.createElement('div');
-  you.innerHTML = `<b>คุณ:</b> ${q}`;
-  box.appendChild(you);
-
-  try {
-    const r = await fetch(GEMINI_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: q }]}]
-      })
-    });
-
-    if (!r.ok) {
-      let msg = r.status + ' ' + r.statusText;
-      try { const j = await r.json(); msg = j.error?.message || msg; } catch {}
-      throw new Error(msg);
-    }
-    const data = await r.json();
-    const reply = extractText(data);
-
-    const bot = document.createElement('div');
-    bot.innerHTML = `<b>บอท:</b> ${reply}`;
-    box.appendChild(bot);
-  } catch (e) {
-    const err = document.createElement('div');
-    err.style.color = 'crimson';
-    err.innerHTML = `<b>ผิดพลาด:</b> ${e.message || 'Failed to fetch'}`;
-    box.appendChild(err);
-    console.error(e);
-  }
-
+  const you = document.createElement('div'); you.innerHTML = `<b>คุณ:</b> ${q}`; box.appendChild(you);
+  const bot = document.createElement('div');
+  const reply = (q.includes('ปุ๋ย')||q.includes('fert')) ? 'ลองเริ่มที่สูตร 16-16-8 ช่วงแตกใบจ้า' :
+                (q.includes('น้ำ') ? 'รดน้ำให้พอชุ่ม อย่าแฉะเกินไปนะ' :
+                 'รับทราบ ๆ มีอะไรถามมาได้เลย');
+  bot.innerHTML = `<b>บอท:</b> ${reply}`;
+  box.appendChild(bot);
   document.getElementById('chatInput').value='';
 }
-    /* ======= /แชท ======= */
+
+/* ===================== ACCOUNT persist ===================== */
+const LS_ACC_NAME   = 'acc_owner';
+const LS_ACC_FARM   = 'acc_farm';
+const LS_ACC_AVATAR = 'acc_avatar_dataurl';
+const LS_STATS      = 'acc_stats_by_year_v1';
+
+function readStatsAll(){
+  try{ return JSON.parse(localStorage.getItem(LS_STATS)||'{}'); }catch{ return {} }
+}
+function writeStatsAll(obj){
+  localStorage.setItem(LS_STATS, JSON.stringify(obj||{}));
+}
+function getYearStats(year){
+  const all = readStatsAll();
+  return all[year] || { fertKg: 0, waterL: 0 };
+}
+function setYearStats(year, stats){
+  const all = readStatsAll();
+  all[year] = { fertKg: Number(stats.fertKg||0), waterL: Number(stats.waterL||0) };
+  writeStatsAll(all);
+}
+function loadAccountUI(){
+  const owner = localStorage.getItem(LS_ACC_NAME)||'';
+  const farm  = localStorage.getItem(LS_ACC_FARM)||'';
+  const av    = localStorage.getItem(LS_ACC_AVATAR)||'';
+  document.getElementById('accOwner').value = owner;
+  document.getElementById('accFarm').value  = farm;
+  const $img = document.getElementById('accAvatarPreview');
+  $img.src = av || 'data:image/svg+xml;utf8,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="110" height="110"><rect width="100%" height="100%" fill="%23cfe9cf"/><text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle" fill="%231b5e20" font-family="Segoe UI, Arial" font-size="14">ไม่มีรูป</text></svg>`);
+}
+function saveAccount(){
+  const owner = document.getElementById('accOwner')?.value.trim() || '';
+  const farm  = document.getElementById('accFarm')?.value.trim() || '';
+  localStorage.setItem(LS_ACC_NAME, owner);
+  localStorage.setItem(LS_ACC_FARM, farm);
+  const msg = document.getElementById('accMsg');
+  msg.textContent = 'บันทึกโปรไฟล์แล้ว ✅';
+  setTimeout(()=>msg.textContent='', 2000);
+}
+function handleAvatarFile(e){
+  const f = e.target.files?.[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = reader.result;
+    localStorage.setItem(LS_ACC_AVATAR, dataUrl);
+    document.getElementById('accAvatarPreview').src = dataUrl;
+  };
+  reader.readAsDataURL(f);
+}
+function updateAccountYearStatsUI(){
+  const yr = new Date().getFullYear().toString();
+  const s = getYearStats(yr);
+  document.getElementById('accYear').textContent = yr;
+  document.getElementById('statFertilizer').textContent = (Number(s.fertKg)||0).toFixed(2);
+  document.getElementById('statWater').textContent = (Number(s.waterL)||0).toFixed(0);
+}
+function adjustStatsPrompt(){
+  const yr = new Date().getFullYear().toString();
+  const s = getYearStats(yr);
+  const fert = prompt(`ป้อน "ปุ๋ยที่ใช้สะสม (กก.)" ของปี ${yr}`, s.fertKg ?? 0);
+  if(fert===null) return;
+  const water = prompt(`ป้อน "น้ำที่ใช้สะสม (ลิตร)" ของปี ${yr}`, s.waterL ?? 0);
+  if(water===null) return;
+  setYearStats(yr, { fertKg: Number(fert)||0, waterL: Number(water)||0 });
+  updateAccountYearStatsUI();
+  const msg = document.getElementById('accMsg');
+  msg.textContent = 'อัปเดตสถิติปีนี้แล้ว ✅';
+  setTimeout(()=>msg.textContent='', 2000);
+}
+function logoutAccount(){
+  localStorage.removeItem(LS_ACC_NAME);
+  localStorage.removeItem(LS_ACC_FARM);
+  localStorage.removeItem(LS_ACC_AVATAR);
+  localStorage.removeItem(LS_STATS);
+  loadAccountUI();
+  updateAccountYearStatsUI();
+  const msg = document.getElementById('accMsg');
+  msg.textContent = 'ออกจากระบบแล้ว ✅ (ล้างข้อมูลบัญชี/สถิติ)';
+  setTimeout(()=>msg.textContent='', 2500);
+}
+
+/* ===================== HOME demo ===================== */
+function demoFillHome(){
+  const loc = document.getElementById('locInput').value.trim() || 'กรุงเทพฯ · กลางเมือง';
+  localStorage.setItem('sf_loc', loc);
+  const w = { temp: 31, humid: 72, cond:'มีเมฆบางส่วน', rain: 35 };
+  document.getElementById('weatherBox').innerHTML =
+    `<div><b>${loc}</b></div>
+     <div>อุณหภูมิ ${w.temp}°C · ความชื้น ${w.humid}%</div>
+     <div>สภาพ: ${w.cond} · โอกาสฝน ${w.rain}%</div>
+     <div class="help">TODO: ต่อ API พยากรณ์จริง</div>`;
+  const prices = [
+    {name:'กล้วยหอม', unit:'กก.', price:27},
+    {name:'มะม่วงน้ำดอกไม้', unit:'กก.', price:45},
+    {name:'ทุเรียนหมอนทอง', unit:'กก.', price:155},
+  ];
+  document.getElementById('priceBox').innerHTML =
+    prices.map(p=>`• ${p.name} ~ <b>${p.price}</b> บาท/${p.unit}`).join('<br>')+
+    `<div class="help">แหล่งราคา: ตลาดกลาง (ตัวอย่าง)</div>`;
+}
+
+/* ===================== Router & bindings ===================== */
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.getAttribute('data-tab-target')===id));
+  localStorage.setItem('sf_last', id);
+  if(id==='location' && !map){ initMap(); }
+}
+function bindNav(){
+  document.querySelectorAll('.menu-item[data-nav]').forEach(el=>{
+    el.addEventListener('click', ()=> showPage(el.getAttribute('data-nav')));
+  });
+  document.querySelectorAll('.tab[data-tab-target]').forEach(btn=>{
+    btn.addEventListener('click', ()=> showPage(btn.getAttribute('data-tab-target')));
+  });
+}
+
+/* ===================== INIT ===================== */
+(function init(){
+  // รีเซ็ต modal กันทับคลิก
+  _closeAllModals();
+
+  // Theme & last page
+  const last = localStorage.getItem('sf_last'); if(last && document.getElementById(last)) showPage(last);
+  const theme = localStorage.getItem('sf_theme') || 'light'; document.documentElement.dataset.theme = theme;
+
+  // Bind nav
+  bindNav();
+
+  // Home
+  document.getElementById('locInput').value = localStorage.getItem('sf_loc')||'';
+  document.getElementById('btnFetch')?.addEventListener('click', demoFillHome);
+  document.getElementById('btnTheme')?.addEventListener('click', ()=>{
+    const cur = document.documentElement.dataset.theme==='dark'?'light':'dark';
+    document.documentElement.dataset.theme = cur;
+    localStorage.setItem('sf_theme', cur);
+  });
+  demoFillHome();
+
+  // Care
+  renderCareVideos();
+
+  // Work
+  document.getElementById('btnSimStart')?.addEventListener('click', simStart);
+  document.getElementById('btnSimStop')?.addEventListener('click', simStop);
+  simStart();
+
+  // Water
+  document.getElementById('btnWaterRand')?.addEventListener('click', randomTanks);
+  randomTanks();
+
+  // Fertilizer
+  renderShop();
+  document.getElementById('btnConfirmOrder')?.addEventListener('click', confirmOrder);
+
+  // Report
+  refreshReport();
+  document.getElementById('btnReportRefresh')?.addEventListener('click', refreshReport);
+
+  // Location buttons
+  document.getElementById('btnReadGPS')?.addEventListener('click', loc_readGPS);
+  document.getElementById('btnCalibrate')?.addEventListener('click', loc_calibrate);
+  document.getElementById('btnClearCal')?.addEventListener('click', loc_clearCal);
+  document.getElementById('btnGoFarm')?.addEventListener('click', loc_goFarm);
+  document.getElementById('btnPinGreen')?.addEventListener('click', ()=>loc_setClickColor('green'));
+  document.getElementById('btnPinYellow')?.addEventListener('click', ()=>loc_setClickColor('yellow'));
+  document.getElementById('btnPinRed')?.addEventListener('click', ()=>loc_setClickColor('red'));
+  document.getElementById('btnClearPins')?.addEventListener('click', loc_clear);
+
+  // Chat
+  document.getElementById('btnChatSend')?.addEventListener('click', demoChat);
+
+  // Disease page
+  document.getElementById('diseaseFile')?.addEventListener('change', (e)=>{
+    const f = e.target.files[0]; if(!f) return;
+    const url = URL.createObjectURL(f);
+    document.getElementById('diseasePreview').innerHTML =
+      `<img src="${url}" style="max-width:100%; border-radius:12px">`;
+  });
+  document.getElementById('btnDiseaseDemo')?.addEventListener('click', ()=>{
+    const txt = "เดาแบบเดโม่: ใบมีจุดน้ำตาล อาจเป็นแอนแทรคโนส\nคำแนะนำ: เก็บเศษใบ เพิ่มการถ่ายเทอากาศ พ่นชีวภัณฑ์สลับสูตร";
+    document.getElementById('diseaseResult').value = txt;
+    document.getElementById('top3Box').innerHTML = "• A1 — 76.2%<br>• Healthy — 18.9%<br>• A2 — 4.9%";
+  });
+  document.getElementById('btnMarkDisease')?.addEventListener('click', ()=>{
+    diseaseToMap('แอนแทรคโนส (เดโม่)', 0.76);
+  });
+
+  // Video modal close (dup safe)
+  document.querySelectorAll('[data-close="video"]').forEach(x=>x.addEventListener('click', closeVideo));
+
+  // Account
+  loadAccountUI();
+  updateAccountYearStatsUI();
+  document.getElementById('accAvatarFile')?.addEventListener('change', handleAvatarFile);
+  document.getElementById('btnSaveAccount')?.addEventListener('click', saveAccount);
+  document.getElementById('btnAdjustStats')?.addEventListener('click', adjustStatsPrompt);
+  document.getElementById('btnLogout')?.addEventListener('click', logoutAccount);
+  document.getElementById('btnOpenGuide')?.addEventListener('click', ()=>{
+    const m = document.getElementById('guideModal');
+    m.classList.add('show'); m.setAttribute('aria-hidden','false');
+  });
+})();
   </script>
 </body>
 </html>
